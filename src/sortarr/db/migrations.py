@@ -240,6 +240,11 @@ CREATE TABLE IF NOT EXISTS playlist_video_tracking (
             con,
             "ALTER TABLE subscription ADD COLUMN added_to_playlist_count INTEGER NOT NULL DEFAULT 0",
         )
+        # V8: pipeline_id on pipeline_runs
+        _run_migration_safe(
+            con,
+            "ALTER TABLE pipeline_runs ADD COLUMN pipeline_id TEXT",
+        )
         con.commit()
         con.close()
         return True

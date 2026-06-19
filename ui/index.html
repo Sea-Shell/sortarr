@@ -1771,12 +1771,13 @@ renderers.runs = async function() {
     }
     container.innerHTML =
       '<div class="table-wrap"><table><thead><tr>' +
-      '<th>ID</th><th>Started</th><th>Status</th><th>Trigger</th><th>Subs Proc</th><th>Subs Skip</th><th>Added</th><th>Vid Skip</th><th>Errors</th><th></th>' +
+      '<th>ID</th><th>Started</th><th>Status</th><th>Pipeline</th><th>Trigger</th><th>Subs Proc</th><th>Subs Skip</th><th>Added</th><th>Vid Skip</th><th>Errors</th><th></th>' +
       '</tr></thead><tbody>' + runs.map(r =>
         '<tr style="cursor:pointer" onclick="location.hash=\'#run-detail-' + r.id + '\'">' +
         '<td class="mono">' + r.id + '</td>' +
         '<td style="font-size:0.75rem;color:var(--text-tertiary)">' + formatTime(r.started_at) + '</td>' +
         '<td>' + statusBadge(r.status) + '</td>' +
+        '<td style="font-size:0.75rem;color:var(--text-tertiary)">' + (r.pipeline_name || '-') + '</td>' +
         '<td>' + (r.trigger || '-') + (r.dry_run ? ' <span class="tag-dryrun">DRY</span>' : '') + '</td>' +
         '<td class="num">' + (r.subscriptions_processed ?? '-') + '</td>' +
         '<td class="num">' + (r.subscriptions_skipped ?? '-') + '</td>' +

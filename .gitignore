@@ -14,8 +14,9 @@ __pycache__
 *.pdb
 *.egg-info
 docs/superpowers/
-.opencode/
-graphify-out
-.worktrees
-node_modules/
 .playwright-mcp/
+graphify-out
+.opencode/
+.worktrees
+.omo/
+node_modules/
