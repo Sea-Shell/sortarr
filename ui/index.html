@@ -808,7 +808,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--sp
   <section id="pipelines" class="page">
     <div class="page-header">
       <h2>Pipelines</h2>
-      <button id="addPipelineBtn" class="btn btn-primary">+ Add Pipeline</button>
+      <button id="addPipelineBtn" class="btn btn-primary" style="box-shadow:0 0 12px var(--neon-accent-glow),0 0 24px var(--neon-accent-glow)">+ Add Pipeline</button>
     </div>
     <div id="pipelinesList"></div>
     <div id="dryRunResult" style="margin-top:var(--space-4)"></div>
@@ -820,6 +820,14 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--sp
         <div class="form-group"><label>Name</label><input id="pipelineName"></div>
         <div class="form-group"><label>Subscription Scope</label>
           <select id="pipelineScope"><option value="all">All Subscriptions</option><option value="selected">Selected Only</option></select></div>
+        <div id="pipelineSubscriptions" style="display:none">
+          <div class="form-group"><label>Subscriptions</label>
+          <div id="subChips" style="display:flex;flex-wrap:wrap;gap:var(--space-1);margin-bottom:var(--space-1)"></div>
+          <div style="position:relative">
+            <input id="subFilter" type="text" placeholder="Search subscriptions..." autocomplete="off" style="width:100%;padding:var(--space-1) var(--space-2);font-size:0.8125rem">
+            <div id="pipelineSubList" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:20;max-height:220px;overflow-y:auto;border:1px solid var(--neon-cyan);border-radius:var(--radius);background:var(--bg);box-shadow:0 4px 16px rgba(0,0,0,.25);padding:var(--space-1) 0"></div>
+          </div></div>
+        </div>
         <div class="form-row">
           <div class="form-group"><label>Min Duration</label><input id="pipelineMinDuration" type="text" value="0" placeholder="e.g. 75 or 2m or 1h"></div>
           <div class="form-group"><label>Max Duration</label><input id="pipelineMaxDuration" type="text" value="0" placeholder="e.g. 480 or 8m or 1h"></div>
@@ -1010,7 +1018,7 @@ async function updateHealth() {
     document.getElementById('healthText').textContent = 'healthy';
     const nextEl = document.getElementById('nextRunText');
     const bar = document.getElementById('nextRunBar');
-    if (data.next_scheduled_run) {
+    if (nextEl && bar && data.next_scheduled_run) {
       const next = new Date(data.next_scheduled_run);
       const now = new Date();
       const diff = Math.max(0, Math.floor((next - now) / 1000));
@@ -1024,14 +1032,15 @@ async function updateHealth() {
       const intervalSec = (data.schedule_interval || 6*3600);
       const progress = Math.max(0, Math.min(100, (1 - diff / intervalSec) * 100));
       bar.style.width = progress + '%';
-    } else {
+    } else if (nextEl && bar) {
       nextEl.innerHTML = '';
       bar.style.width = '0%';
     }
   } catch {
     document.getElementById('healthDot').className = 'health-dot error';
     document.getElementById('healthText').textContent = 'unreachable';
-    document.getElementById('nextRunBar').style.width = '0%';
+    const bar = document.getElementById('nextRunBar');
+    if (bar) bar.style.width = '0%';
   }
 }
 
@@ -1250,7 +1259,7 @@ renderers.pipelines = async function() {
     const pipelines = await api('/api/pipelines');
     await loadPipelineIgnoreLists();
     if (!Array.isArray(pipelines) || pipelines.length === 0) {
-      container.innerHTML = '<p class="empty-state">No pipelines configured</p>'; return;
+      container.innerHTML = '<div class="empty-state"><p>No pipelines configured</p><button class="btn btn-primary" style="margin-top:var(--space-3)" onclick="openPipelineModal(null)">+ Add Pipeline</button></div>'; return;
     }
     container.innerHTML =
       '<div class="table-wrap"><table><thead><tr>' +
@@ -1317,6 +1326,28 @@ function openPipelineModal(pipeline) {
   document.getElementById('pipelineId').value = pipeline ? pipeline.id : '';
   document.getElementById('pipelineName').value = pipeline ? pipeline.name : '';
   document.getElementById('pipelineScope').value = pipeline ? pipeline.subscription_scope : 'all';
+
+  // ── Subscription picker ─────────────────────────────────
+  _selectedSubs = {};
+  const prevSelectedIds = pipeline && pipeline.subscription_ids ? pipeline.subscription_ids.slice() : [];
+  prevSelectedIds.forEach(id => { _selectedSubs[id] = id; });
+  const scope = document.getElementById('pipelineScope').value;
+  const subsContainer = document.getElementById('pipelineSubscriptions');
+  subsContainer.style.display = scope === 'selected' ? 'block' : 'none';
+  document.getElementById('subFilter').value = '';
+  document.getElementById('pipelineSubList').style.display = 'none';
+  renderSubChips();
+  window._subData = null;
+  api('/api/subscriptions').then(subs => {
+    window._subData = (subs || []).map(s => ({ cid: s.channel_id, title: s.title }));
+    prevSelectedIds.forEach(id => {
+      const found = (window._subData || []).find(s => s.cid === id);
+      _selectedSubs[id] = found ? found.title : id;
+    });
+    renderSubChips();
+    renderSubDropdown();
+  }).catch(() => { window._subData = []; renderSubChips(); renderSubDropdown(); });
+
   document.getElementById('pipelineMinDuration').value = pipeline ? formatDurationShort(pipeline.duration_min_seconds) : '0';
   document.getElementById('pipelineMaxDuration').value = pipeline ? formatDurationShort(pipeline.duration_max_seconds) : '0';
   document.getElementById('pipelineCheckDb').checked = pipeline ? pipeline.check_db_exists : false;
@@ -1397,6 +1428,84 @@ function renderIgnoreListCheckboxes(attached) {
   ).join('');
 }
 
+let _selectedSubs = {};
+
+function renderSubChips() {
+  const chipContainer = document.getElementById('subChips');
+  const ids = Object.keys(_selectedSubs);
+  if (ids.length === 0) { chipContainer.innerHTML = ''; return; }
+  chipContainer.innerHTML = ids.map(id =>
+    '<span style="display:inline-flex;align-items:center;gap:2px;padding:2px 6px;font-size:0.75rem;border:1px solid var(--neon-cyan);border-radius:var(--radius);background:color-mix(in srgb, var(--neon-cyan) 12%, transparent)">' +
+    escapeHtml(_selectedSubs[id]) +
+    '<button class="sub-chip-remove" data-cid="' + escapeHtml(id) + '" style="background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:0.75rem;line-height:1;padding:0 0 0 2px">&times;</button></span>'
+  ).join('');
+  chipContainer.querySelectorAll('.sub-chip-remove').forEach(btn => {
+    btn.onclick = () => { delete _selectedSubs[btn.dataset.cid]; renderSubChips(); renderSubDropdown(); };
+  });
+}
+
+function fuzzySubScore(title, filter) {
+  if (!filter) return -1;
+  const hay = title.toLowerCase();
+  const needle = filter.toLowerCase().trim();
+  let pos = 0;
+  let score = hay.includes(needle) ? 1000 - hay.indexOf(needle) : 0;
+  for (const ch of needle) {
+    const found = hay.indexOf(ch, pos);
+    if (found === -1) return -1;
+    score += Math.max(1, 50 - (found - pos));
+    pos = found + 1;
+  }
+  return score;
+}
+
+function renderSubDropdown() {
+  const subs = window._subData || [];
+  const filter = (document.getElementById('subFilter').value || '').trim();
+  const list = document.getElementById('pipelineSubList');
+  const filtered = filter
+    ? subs.map(s => ({ ...s, score: fuzzySubScore(s.title, filter) }))
+        .filter(s => s.score >= 0)
+        .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
+        .slice(0, 25)
+    : [];
+  if (filtered.length === 0) {
+    list.innerHTML = filter ? '<div style="padding:var(--space-2);color:var(--text-tertiary);font-size:0.8125rem">No subscriptions match</div>' : '';
+    list.style.display = filter ? 'block' : 'none';
+    return;
+  }
+  list.style.display = 'block';
+  list.innerHTML = filtered.map(s => {
+    const bg = _selectedSubs[s.cid] ? 'background:color-mix(in srgb, var(--neon-cyan) 10%, transparent);' : '';
+    return '<div class="sub-result-row" data-cid="' + escapeHtml(s.cid) + '" style="' + bg + 'padding:var(--space-1) var(--space-2);cursor:pointer;font-size:0.8125rem;display:flex;align-items:center;gap:var(--space-2)">' +
+      '<span style="flex-shrink:0;width:14px;text-align:center;color:var(--neon-cyan)">' + (_selectedSubs[s.cid] ? '&#10003;' : '') + '</span>' +
+      escapeHtml(s.title) +
+    '</div>';
+  }).join('');
+  list.querySelectorAll('.sub-result-row').forEach(row => {
+    row.onclick = () => {
+      const cid = row.dataset.cid;
+      const sub = (window._subData || []).find(s => s.cid === cid);
+      if (!sub) return;
+      if (_selectedSubs[cid]) { delete _selectedSubs[cid]; }
+      else { _selectedSubs[cid] = sub.title; }
+      renderSubChips();
+      renderSubDropdown();
+      document.getElementById('subFilter').focus();
+    };
+    row.onmouseenter = () => { row.style.background = 'var(--hover-bg, color-mix(in srgb, var(--neon-cyan) 18%, transparent))'; };
+    row.onmouseleave = () => { row.style.background = _selectedSubs[row.dataset.cid] ? 'color-mix(in srgb, var(--neon-cyan) 10%, transparent)' : ''; };
+  });
+}
+
+document.addEventListener('click', function(e) {
+  const list = document.getElementById('pipelineSubList');
+  const filter = document.getElementById('subFilter');
+  if (list && filter && !filter.contains(e.target) && !list.contains(e.target)) {
+    list.style.display = 'none';
+  }
+});
+
 document.getElementById('addPipelineBtn')?.addEventListener('click', () => openPipelineModal(null));
 document.getElementById('pipelineCancel')?.addEventListener('click', () => {
   document.getElementById('pipelineModal').classList.remove('open');
@@ -1421,6 +1530,21 @@ document.getElementById('addSelectorBtn')?.addEventListener('click', function() 
 });
 document.getElementById('pipelineCheckTitle')?.addEventListener('change', function() {
   document.getElementById('pipelineDistanceGroup').style.display = this.checked ? 'block' : 'none';
+});
+document.getElementById('pipelineScope')?.addEventListener('change', function() {
+  const subsContainer = document.getElementById('pipelineSubscriptions');
+  if (this.value === 'selected') {
+    subsContainer.style.display = 'block';
+    if (window._subData) renderSubDropdown();
+  } else {
+    subsContainer.style.display = 'none';
+  }
+});
+document.getElementById('subFilter')?.addEventListener('input', function() {
+  renderSubDropdown();
+});
+document.getElementById('subFilter')?.addEventListener('focus', function() {
+  if (this.value && window._subData) renderSubDropdown();
 });
 document.getElementById('pipelineSave')?.addEventListener('click', async function() {
   const id = document.getElementById('pipelineId').value;
@@ -1458,6 +1582,12 @@ document.getElementById('pipelineSave')?.addEventListener('click', async functio
     });
     await api('/api/pipelines/' + pid + '/ignore-lists', {
       method: 'PUT', body: JSON.stringify({ ignore_list_ids: ignoreListIds }),
+    });
+    const selectedSubscriptionIds = document.getElementById('pipelineScope').value === 'selected'
+      ? Object.keys(_selectedSubs)
+      : [];
+    await api('/api/pipelines/' + pid + '/subscriptions', {
+      method: 'PUT', body: JSON.stringify({ subscription_ids: selectedSubscriptionIds }),
     });
     document.getElementById('pipelineModal').classList.remove('open');
     renderers.pipelines();

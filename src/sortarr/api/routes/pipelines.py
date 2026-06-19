@@ -36,6 +36,9 @@ def _enrich_pipeline(state, db_pipeline: dict) -> dict:
         state.db_con, db_pipeline["id"]
     )
     data["selectors"] = pl.get_pipeline_selectors(state.db_con, db_pipeline["id"])
+    data["subscription_ids"] = pl.get_pipeline_subscription_ids(
+        state.db_con, db_pipeline["id"]
+    )
     return data
 
 

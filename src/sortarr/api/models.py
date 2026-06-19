@@ -144,6 +144,7 @@ class PipelineResponse(BaseModel):
     updated_at: str
     ignore_list_ids: list[str] = []
     selectors: list[dict] = []
+    subscription_ids: list[str] = []
 
 
 class PipelineRunResponse(BaseModel):
