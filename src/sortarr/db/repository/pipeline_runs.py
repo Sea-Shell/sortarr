@@ -120,7 +120,7 @@ def get_run_decisions(
     con: sqlite3.Connection, run_id: int, limit: int = 1000
 ) -> list[dict]:
     cursor = con.execute(
-        "SELECT id, video_id, title, subscription_title, action, reason, reason_detail, routed_to, created_at "
+        "SELECT id, video_id, title, subscription_id, subscription_title, channel_id, action, reason, reason_detail, routed_to, created_at "
         "FROM pipeline_run_decisions WHERE run_id = ? ORDER BY id ASC LIMIT ?",
         (run_id, limit),
     )

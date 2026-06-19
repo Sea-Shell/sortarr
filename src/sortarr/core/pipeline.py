@@ -221,6 +221,7 @@ class PipelineOrchestrator:
                         pass
 
                 # 2.3: Get cached activities
+                pub_after = self._compute_published_after(sub)
                 if sub.id not in activity_cache:
                     summary.subscriptions_skipped += 1
                     skip = dict(
@@ -228,7 +229,9 @@ class PipelineOrchestrator:
                         subscription_title=sub.title,
                         channel_id=sub.channel_id,
                         reason="api_error",
-                        reason_detail="Failed to fetch activity for this subscription",
+                        reason_detail=(
+                            f"Failed to fetch activity. Lookback: from {pub_after}"
+                        ),
                     )
                     summary.subscription_skips.append(skip)
                     if self.on_progress:
@@ -242,7 +245,9 @@ class PipelineOrchestrator:
                         subscription_title=sub.title,
                         channel_id=sub.channel_id,
                         reason="no_new_activity",
-                        reason_detail="No recent activity found for this subscription",
+                        reason_detail=(
+                            f"No recent activity. Lookback: from {pub_after}"
+                        ),
                     )
                     summary.subscription_skips.append(skip)
                     if self.on_progress:
