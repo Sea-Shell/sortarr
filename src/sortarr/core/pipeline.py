@@ -221,8 +221,32 @@ class PipelineOrchestrator:
                         pass
 
                 # 2.3: Get cached activities
-                activities = activity_cache.get(sub.id, [])
+                if sub.id not in activity_cache:
+                    summary.subscriptions_skipped += 1
+                    skip = dict(
+                        subscription_id=sub.id,
+                        subscription_title=sub.title,
+                        channel_id=sub.channel_id,
+                        reason="api_error",
+                        reason_detail="Failed to fetch activity for this subscription",
+                    )
+                    summary.subscription_skips.append(skip)
+                    if self.on_progress:
+                        self.on_progress(skip, summary)
+                    continue
+                activities = activity_cache[sub.id]
                 if not activities:
+                    summary.subscriptions_skipped += 1
+                    skip = dict(
+                        subscription_id=sub.id,
+                        subscription_title=sub.title,
+                        channel_id=sub.channel_id,
+                        reason="no_new_activity",
+                        reason_detail="No recent activity found for this subscription",
+                    )
+                    summary.subscription_skips.append(skip)
+                    if self.on_progress:
+                        self.on_progress(skip, summary)
                     continue
 
                 summary.subscriptions_processed += 1
