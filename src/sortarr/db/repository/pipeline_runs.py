@@ -20,13 +20,16 @@ __all__ = [
 
 
 def create_pipeline_run(
-    con: sqlite3.Connection, trigger: str = "scheduled", dry_run: bool = False
+    con: sqlite3.Connection,
+    trigger: str = "scheduled",
+    dry_run: bool = False,
+    pipeline_id: str | None = None,
 ) -> Optional[int]:
     now = datetime.now(timezone.utc).isoformat()
     try:
         cursor = con.execute(
-            "INSERT INTO pipeline_runs (started_at, status, trigger, dry_run) VALUES (?, 'running', ?, ?)",
-            (now, trigger, int(dry_run)),
+            "INSERT INTO pipeline_runs (started_at, status, trigger, dry_run, pipeline_id) VALUES (?, 'running', ?, ?, ?)",
+            (now, trigger, int(dry_run), pipeline_id),
         )
         con.commit()
         return cursor.lastrowid
@@ -65,7 +68,14 @@ def finish_pipeline_run(con: sqlite3.Connection, run_id: int, summary: dict) -> 
 
 def get_pipeline_runs(con: sqlite3.Connection, limit: int = 20) -> list[dict]:
     cursor = con.execute(
-        "SELECT * FROM pipeline_runs ORDER BY id DESC LIMIT ?", (limit,)
+        """
+        SELECT pr.*, p.name AS pipeline_name
+        FROM pipeline_runs pr
+        LEFT JOIN pipelines p ON pr.pipeline_id = p.id
+        ORDER BY pr.id DESC
+        LIMIT ?
+        """,
+        (limit,),
     )
     return [dict(row) for row in cursor.fetchall()]
 

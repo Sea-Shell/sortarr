@@ -161,6 +161,8 @@ class PipelineRunResponse(BaseModel):
     pipelines_invoked: int = 0
     pipelines_with_errors: int = 0
     dry_run: bool = False
+    pipeline_id: Optional[str] = None
+    pipeline_name: Optional[str] = None
 
 
 class RunDecisionResponse(BaseModel):

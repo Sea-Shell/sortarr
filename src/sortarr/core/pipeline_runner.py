@@ -16,7 +16,9 @@ log = logging.getLogger("sortarr.core.pipeline_runner")
 
 async def execute_pipeline(state, trigger="manual", dry_run=False, pipeline_id=None):
     require_youtube(state)
-    run_id = pr.create_pipeline_run(state.db_con, trigger=trigger, dry_run=dry_run)
+    run_id = pr.create_pipeline_run(
+        state.db_con, trigger=trigger, dry_run=dry_run, pipeline_id=pipeline_id
+    )
     if run_id is None:
         log.error("Failed to create pipeline run")
         return None
