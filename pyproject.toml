@@ -20,7 +20,7 @@ dependencies = [
     "uvicorn[standard]>=0.32.0",
     "apscheduler>=3.10.0",
     "prometheus-client>=0.21.0",
-    "pydantic-settings>=2.6.0",
+    "pydantic-settings>=2.14.2",
     "httpx>=0.28.0",
     "pytest>=9.0.3",
 ]
