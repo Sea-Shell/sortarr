@@ -40,15 +40,15 @@ async def test_index_has_dashboard_section(client):
 
 
 @pytest.mark.asyncio
-async def test_index_has_dark_theme(client):
+async def test_index_has_light_theme(client):
     resp = await client.get("/ui/index.html")
-    assert "--canvas" in resp.text or "#0c0c0e" in resp.text
+    assert "--canvas" in resp.text and "#F7F5F0" in resp.text
 
 
 @pytest.mark.asyncio
 async def test_index_has_five_nav_links(client):
     resp = await client.get("/ui/index.html")
-    for page in ["dashboard", "subscriptions", "pipelines", "config", "runs"]:
+    for page in ["dashboard", "subscriptions", "pipelines", "runs", "settings"]:
         assert f'data-page="{page}"' in resp.text
 
 
@@ -87,13 +87,13 @@ async def test_rules_section_has_modal(client):
 @pytest.mark.asyncio
 async def test_subscriptions_section_has_search(client):
     resp = await client.get("/ui/index.html")
-    assert "subSearch" in resp.text or "Filter channels" in resp.text
+    assert "subFilter" in resp.text or "Search subscriptions" in resp.text
 
 
 @pytest.mark.asyncio
 async def test_config_form_exists(client):
     resp = await client.get("/ui/index.html")
-    assert "configForm" in resp.text or "Config" in resp.text
+    assert "settingsConfig" in resp.text or "configSaveRuntime" in resp.text
 
 
 @pytest.mark.asyncio

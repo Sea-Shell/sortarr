@@ -1,5 +1,6 @@
 from typing import List
 from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 from sortarr.api.deps import get_state
 from sortarr.api.models import TriggerResponse, PipelineRunResponse, RunDecisionResponse
 from sortarr.core.pipeline_runner import execute_pipeline
@@ -8,6 +9,16 @@ import logging
 
 log = logging.getLogger("sortarr.api.pipeline")
 router = APIRouter()
+
+
+class VideoSearchResult(BaseModel):
+    run_id: int
+    run_started_at: str
+    run_status: str
+    run_trigger: str
+    run_dry_run: bool
+    pipeline_name: str | None
+    decision: RunDecisionResponse
 
 
 @router.post("/pipeline/trigger")
@@ -47,3 +58,27 @@ async def get_run_decisions(run_id: int, request: Request):
     state = get_state(request)
     decisions = repo.get_run_decisions(state.db_con, run_id)
     return [RunDecisionResponse(**d) for d in decisions]
+
+
+@router.get("/pipeline/runs/search", response_model=List[VideoSearchResult])
+async def search_video_across_runs(request: Request, video_id: str, limit: int = 50):
+    """Search for a video ID across all pipeline runs in a single query."""
+    state = get_state(request)
+    runs = repo.get_runs_by_video_id(state.db_con, video_id, limit)
+    results = []
+    for run in runs:
+        decisions = repo.get_run_decisions(state.db_con, run["id"], limit=1)
+        for d in decisions:
+            if d.get("video_id") == video_id:
+                results.append(
+                    VideoSearchResult(
+                        run_id=run["id"],
+                        run_started_at=run["started_at"],
+                        run_status=run["status"],
+                        run_trigger=run["trigger"],
+                        run_dry_run=run.get("dry_run", False),
+                        pipeline_name=run.get("pipeline_name"),
+                        decision=RunDecisionResponse(**d),
+                    )
+                )
+    return results
