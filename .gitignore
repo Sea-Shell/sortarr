@@ -19,4 +19,5 @@ graphify-out
 .opencode/
 .worktrees
 .omo/
+.superpowers/
 node_modules/

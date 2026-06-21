@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 
 
 class HealthResponse(BaseModel):
@@ -142,9 +142,9 @@ class PipelineResponse(BaseModel):
     destination_playlist_title: str
     created_at: str
     updated_at: str
-    ignore_list_ids: list[str] = []
-    selectors: list[dict] = []
-    subscription_ids: list[str] = []
+    ignore_list_ids: List[str] = Field(default_factory=list)
+    selectors: List[dict] = Field(default_factory=list)
+    subscription_ids: List[str] = Field(default_factory=list)
 
 
 class PipelineRunResponse(BaseModel):
@@ -191,7 +191,7 @@ class IgnoreListResponse(BaseModel):
     name: str
     list_type: str
     created_at: str
-    entries: list[str] = []
+    entries: List[str] = Field(default_factory=list)
 
 
 class IgnoreListCreate(BaseModel):
