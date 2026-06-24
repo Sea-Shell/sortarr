@@ -30,6 +30,7 @@ jobs:
       release-enabled: true
       lint-enabled: false
   build:
+    if: ${{ needs.release.outputs.new-release-published == 'true' }}
     runs-on: ubuntu-latest
     outputs:
       digest: ${{ steps.build_push.outputs.digest }}
