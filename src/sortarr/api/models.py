@@ -111,6 +111,7 @@ class PipelineCreate(BaseModel):
     subscription_scope: str = "all"
     destination_playlist_id: str
     destination_playlist_title: str = ""
+    sort_order: Optional[int] = None
 
 
 class PipelineUpdate(BaseModel):
@@ -125,6 +126,7 @@ class PipelineUpdate(BaseModel):
     subscription_scope: Optional[str] = None
     destination_playlist_id: Optional[str] = None
     destination_playlist_title: Optional[str] = None
+    sort_order: Optional[int] = None
 
 
 class PipelineResponse(BaseModel):
@@ -142,6 +144,7 @@ class PipelineResponse(BaseModel):
     destination_playlist_title: str
     created_at: str
     updated_at: str
+    sort_order: int = 0
     ignore_list_ids: List[str] = Field(default_factory=list)
     selectors: List[dict] = Field(default_factory=list)
     subscription_ids: List[str] = Field(default_factory=list)

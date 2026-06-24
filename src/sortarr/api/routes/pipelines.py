@@ -98,6 +98,18 @@ async def update_pipeline(pipeline_id: str, update: PipelineUpdate, request: Req
     return _enrich_pipeline(state, match[0])
 
 
+@router.put("/pipelines/reorder", status_code=204)
+async def reorder_pipelines(body: dict, request: Request):
+    """Batch-update sort_order for pipelines.
+    Body: { "orders": { "pipeline_id": sort_order, ... } }
+    """
+    state = _get_state(request)
+    orders = body.get("orders", {})
+    if not orders:
+        raise HTTPException(status_code=400, detail="No orders provided")
+    pl.reorder_pipelines(state.db_con, orders)
+
+
 @router.delete("/pipelines/{pipeline_id}", status_code=204)
 async def delete_pipeline(pipeline_id: str, request: Request):
     state = _get_state(request)
