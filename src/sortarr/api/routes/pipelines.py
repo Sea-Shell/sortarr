@@ -6,6 +6,7 @@ from sortarr.api.models import (
     PipelineCreate,
     PipelineUpdate,
     PipelineResponse,
+    ReorderRequest,
     IgnoreListResponse,
     IgnoreListCreate,
     IgnoreListEntryCreate,
@@ -76,12 +77,27 @@ async def create_pipeline(pipeline: PipelineCreate, request: Request):
         check_title_similarity=pipeline.check_title_similarity,
         compare_distance=pipeline.compare_distance,
         subscription_scope=pipeline.subscription_scope,
+        sort_order=pipeline.sort_order,
     )
     if not ok:
         raise HTTPException(status_code=500, detail="Failed to create pipeline")
     pipelines = pl.get_pipelines(state.db_con)
     match = [p for p in pipelines if p["id"] == pid]
     return _enrich_pipeline(state, match[0])
+
+
+@router.put("/pipelines/reorder", status_code=204)
+async def reorder_pipelines(body: ReorderRequest, request: Request):
+    """Reorder pipelines by submitting full ordered list of IDs.
+    Body: { "pipeline_ids": ["id3", "id1", "id2"] }
+    sort_order is assigned sequentially (0, 1, 2, ...) based on position.
+    """
+    state = _get_state(request)
+    if not body.pipeline_ids:
+        raise HTTPException(status_code=400, detail="No pipeline_ids provided")
+    ok = pl.reorder_pipelines(state.db_con, body.pipeline_ids)
+    if not ok:
+        raise HTTPException(status_code=500, detail="Failed to reorder pipelines")
 
 
 @router.put("/pipelines/{pipeline_id}", response_model=PipelineResponse)

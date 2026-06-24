@@ -19,6 +19,9 @@ from sortarr.db.repository.pipeline import (
     create_routing_rule,
     update_routing_rule,
     delete_routing_rule,
+    get_pipelines,
+    create_pipeline,
+    reorder_pipelines,
 )
 from sortarr.db.repository.pipeline_runs import (
     create_pipeline_run,
@@ -141,6 +144,90 @@ def test_app_config(db_con):
     assert get_config(db_con, "test_key") == "test_value"
     assert set_config(db_con, "test_key", "updated")
     assert get_config(db_con, "test_key") == "updated"
+
+
+# ── Pipeline sort_order / reorder tests ─────────────────────────────
+
+
+def test_create_pipeline_with_sort_order(db_con):
+    """create_pipeline with explicit sort_order should persist."""
+    assert create_pipeline(
+        db_con, "p_sort1", "Sorted", "PL_dest", "Dest", sort_order=42
+    )
+    pipelines = get_pipelines(db_con)
+    match = [p for p in pipelines if p["id"] == "p_sort1"]
+    assert len(match) == 1
+    assert match[0]["sort_order"] == 42
+
+
+def test_create_pipeline_auto_sort_order(db_con):
+    """create_pipeline without sort_order should auto-assign max+1."""
+    assert create_pipeline(db_con, "p_auto1", "First", "PL_dest", "Dest")
+    assert create_pipeline(db_con, "p_auto2", "Second", "PL_dest", "Dest")
+    pipelines = get_pipelines(db_con)
+    p1 = [p for p in pipelines if p["id"] == "p_auto1"][0]
+    p2 = [p for p in pipelines if p["id"] == "p_auto2"][0]
+    # Second gets sort_order=1 (max 0 + 1)
+    assert p2["sort_order"] == p1["sort_order"] + 1
+
+
+def test_get_pipelines_ordered_by_sort_order(db_con):
+    """get_pipelines should return pipelines ordered by sort_order ASC, name ASC."""
+    assert create_pipeline(db_con, "p_c", "C Pipe", "PL_dest", "Dest", sort_order=2)
+    assert create_pipeline(db_con, "p_a", "A Pipe", "PL_dest", "Dest", sort_order=0)
+    assert create_pipeline(db_con, "p_b", "B Pipe", "PL_dest", "Dest", sort_order=1)
+    pipelines = get_pipelines(db_con)
+    order = [p["sort_order"] for p in pipelines if p["id"].startswith("p_")]
+    assert order == sorted(order)
+
+
+def test_reorder_pipelines_happy_path(db_con):
+    """reorder_pipelines assigns sequential sort_order based on list position."""
+    assert create_pipeline(db_con, "r1", "R1", "PL_dest", "Dest")
+    assert create_pipeline(db_con, "r2", "R2", "PL_dest", "Dest")
+    assert create_pipeline(db_con, "r3", "R3", "PL_dest", "Dest")
+
+    assert reorder_pipelines(db_con, ["r3", "r1", "r2"])
+    pipelines = get_pipelines(db_con)
+    r1 = [p for p in pipelines if p["id"] == "r1"][0]
+    r2 = [p for p in pipelines if p["id"] == "r2"][0]
+    r3 = [p for p in pipelines if p["id"] == "r3"][0]
+    assert r3["sort_order"] == 0  # first in list
+    assert r1["sort_order"] == 1
+    assert r2["sort_order"] == 2
+
+
+def test_reorder_pipelines_non_existent_ids(db_con):
+    """reorder_pipelines with non-existent IDs should not raise."""
+    assert create_pipeline(db_con, "r_ex", "Exists", "PL_dest", "Dest")
+    # Should not fail even though "ghost" doesn't exist
+    assert reorder_pipelines(db_con, ["r_ex", "ghost"])
+    pipelines = get_pipelines(db_con)
+    r_ex = [p for p in pipelines if p["id"] == "r_ex"][0]
+    assert r_ex["sort_order"] == 0
+
+
+def test_reorder_pipelines_empty_list(db_con):
+    """reorder_pipelines with empty list should succeed (no-op)."""
+    assert create_pipeline(db_con, "r_empty", "EmptyTest", "PL_dest", "Dest")
+    assert reorder_pipelines(db_con, [])
+
+
+# ── PipelineConfig sort_order test ──────────────────────────────────
+
+
+def test_pipeline_config_construction_includes_sort_order():
+    """PipelineConfig construction from DB dict should include sort_order."""
+    from sortarr.models.pipeline import PipelineConfig
+
+    p = PipelineConfig(
+        id="test",
+        name="Test",
+        destination_playlist_id="PL_dest",
+        destination_playlist_title="Dest",
+        sort_order=7,
+    )
+    assert p.sort_order == 7
 
 
 def test_ignore_entries(db_con):

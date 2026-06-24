@@ -19,6 +19,7 @@ __all__ = [
     "get_pipeline_tracking",
     "upsert_pipeline_tracking",
     "get_min_tracking_for_subscription",
+    "reorder_pipelines",
     "get_routing_rules",
     "create_routing_rule",
     "update_routing_rule",
@@ -30,8 +31,8 @@ def get_pipelines(con: sqlite3.Connection) -> list[dict]:
     cursor = con.execute(
         "SELECT id, name, enabled, selector_mode, duration_min_seconds, duration_max_seconds, "
         "check_db_exists, check_title_similarity, compare_distance, subscription_scope, "
-        "destination_playlist_id, destination_playlist_title, created_at, updated_at "
-        "FROM pipelines ORDER BY name"
+        "destination_playlist_id, destination_playlist_title, created_at, updated_at, sort_order "
+        "FROM pipelines ORDER BY sort_order ASC, name ASC"
     )
     return [dict(row) for row in cursor.fetchall()]
 
@@ -52,12 +53,19 @@ def create_pipeline(
     check_sim = kwargs.get("check_title_similarity", 0)
     distance = kwargs.get("compare_distance", 80)
     scope = kwargs.get("subscription_scope", "all")
+    sort_order = kwargs.get("sort_order")
+    if sort_order is None:
+        # Default to max existing sort_order + 1
+        row = con.execute(
+            "SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order FROM pipelines"
+        ).fetchone()
+        sort_order = row["next_order"] if row else 0
     try:
         con.execute(
             "INSERT INTO pipelines (id, name, enabled, selector_mode, duration_min_seconds, duration_max_seconds, "
             "check_db_exists, check_title_similarity, compare_distance, subscription_scope, "
-            "destination_playlist_id, destination_playlist_title, created_at, updated_at) "
-            "VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "destination_playlist_id, destination_playlist_title, sort_order, created_at, updated_at) "
+            "VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 pipeline_id,
                 name,
@@ -70,6 +78,7 @@ def create_pipeline(
                 scope,
                 destination_playlist_id,
                 destination_playlist_title,
+                int(sort_order),
                 now,
                 now,
             ),
@@ -94,6 +103,7 @@ def update_pipeline(con: sqlite3.Connection, pipeline_id: str, **kwargs) -> bool
         "subscription_scope",
         "destination_playlist_id",
         "destination_playlist_title",
+        "sort_order",
     }
     updates = {k: v for k, v in kwargs.items() if k in allowed}
     if not updates:
@@ -227,6 +237,21 @@ def get_min_tracking_for_subscription(
     )
     row = cursor.fetchone()
     return row["min_ts"] if row and row["min_ts"] else None
+
+
+def reorder_pipelines(con: sqlite3.Connection, pipeline_ids: list[str]) -> bool:
+    """Assign sequential sort_order (0, 1, 2, ...) based on list position."""
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        con.executemany(
+            "UPDATE pipelines SET sort_order = ?, updated_at = ? WHERE id = ?",
+            [(idx, now, pid) for idx, pid in enumerate(pipeline_ids)],
+        )
+        con.commit()
+        return True
+    except sqlite3.Error as err:
+        log.error("Failed to reorder pipelines: %s", err)
+        return False
 
 
 def get_routing_rules(con: sqlite3.Connection) -> list[dict]:

@@ -101,15 +101,21 @@ class PipelineOrchestrator:
 
     def _compute_published_after(self, sub) -> str:
         """Compute the earliest time we need data for this subscription
-        across all pipelines."""
-        min_ts = pl.get_min_tracking_for_subscription(self.db_con, sub.id)
-        candidates = []
+        in Phase 1 data collection.  Uses settings.published_after if set,
+        otherwise falls back to reprocess_days or 52 weeks.
+
+        NOTE: does NOT use per-subscription tracking (get_min_tracking_for_subscription)
+        because that can be pipeline-specific and prematurely narrow the lookback
+        window when multiple pipelines process the same subscription.
+        The per-pipeline freshness check (checkpoint 2.2) handles the reprocess
+        window separately."""
         if self.settings.published_after:
-            candidates.append(self.settings.published_after)
-        if min_ts:
-            candidates.append(min_ts)
-        if candidates:
-            return min(candidates)
+            return self.settings.published_after
+        if self.settings.reprocess_days > 0:
+            return (
+                datetime.now(timezone.utc)
+                - timedelta(days=self.settings.reprocess_days)
+            ).isoformat()
         return (datetime.now(timezone.utc) - timedelta(weeks=52)).isoformat()
 
     # ── Phase 2: Pipeline Processing ──────────────────────────────

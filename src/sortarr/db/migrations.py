@@ -245,6 +245,11 @@ CREATE TABLE IF NOT EXISTS playlist_video_tracking (
             con,
             "ALTER TABLE pipeline_runs ADD COLUMN pipeline_id TEXT",
         )
+        # V9: pipeline sort_order
+        _run_migration_safe(
+            con,
+            "ALTER TABLE pipelines ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0",
+        )
         con.commit()
         con.close()
         return True
