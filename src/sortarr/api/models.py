@@ -97,6 +97,10 @@ class RoutingRuleResponse(BaseModel):
     catch_all: bool = False
 
 
+class ReorderRequest(BaseModel):
+    pipeline_ids: List[str]
+
+
 # --- Pipeline models ---
 
 

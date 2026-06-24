@@ -4,7 +4,7 @@ title: Sortarr HTTP API
 description: FastAPI app factory, shared AppState, dependency providers, and the REST routes for config, auth, pipelines, subscriptions, and metrics.
 resource: https://github.com/Sea-Shell/sortarr/tree/main/src/sortarr/api
 tags: [sortarr, api, fastapi, rest]
-timestamp: 2026-06-24T10:00:00Z
+timestamp: 2026-06-24T12:00:00Z
 ---
 
 # App factory
@@ -46,5 +46,13 @@ persists results to `pipeline_runs` in the [database](/knowledge/concepts/databa
 # Models
 
 Request/response models are pydantic (`api/models.py` and `models/`):
-`HealthResponse`, `PipelineCreate/Update/Response`, `IgnoreList*`,
-`PipelineRunResponse`, etc.
+`HealthResponse`, `PipelineCreate/Update/Response`, `ReorderRequest`,
+`IgnoreList*`, `PipelineRunResponse`, etc.
+
+### Pipeline Reorder API
+
+`PUT /api/pipelines/reorder` accepts `ReorderRequest { pipeline_ids: list[str] }`
+and assigns sequential `sort_order` (0, 1, 2, ...) based on position in the list.
+The handler validates the list is non-empty and returns 400 if empty, 500 on DB
+failure. This replaced the previous swap-based `orders` dict API to fix the
+issue where all pipelines had `sort_order=0` and swapping was a no-op.

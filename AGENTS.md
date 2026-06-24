@@ -12,7 +12,7 @@ Rules:
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
 
-## Knowledge bundle (OKF) — MANDATORY maintenance
+## Knowledge bundle (OKF) - MANDATORY maintenance
 
 `knowledge/` is a curated OKF knowledge bundle (markdown + YAML frontmatter) that
 agents and humans read to understand this project. **It is part of the source
@@ -20,7 +20,7 @@ tree, not optional documentation.** A change that makes a concept doc inaccurate
 is an incomplete change.
 
 **Rule: if you change source, you MUST update the matching concept doc in the
-SAME change — before you consider the task done.** Treat a stale doc the same as
+SAME change - before you consider the task done.** Treat a stale doc the same as
 a failing test: a blocker, not a follow-up.
 
 Source → doc mapping (touching the left column REQUIRES checking the right):
@@ -37,7 +37,7 @@ Source → doc mapping (touching the left column REQUIRES checking the right):
 | module layout / new packages                        | `knowledge/concepts/architecture.md` + `knowledge/index.md` |
 | build, deps, make targets, CI, Docker, K8s          | `knowledge/concepts/dev-workflow.md`                        |
 
-Definition of done — ALL must hold before finishing a code change:
+Definition of done - ALL must hold before finishing a code change:
 
 - [ ] Every doc in the mapping above whose source you touched has been updated (or you confirmed it is still accurate).
 - [ ] You bumped the `timestamp:` frontmatter on every doc you edited (UTC ISO8601).

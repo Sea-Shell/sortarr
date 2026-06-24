@@ -239,15 +239,13 @@ def get_min_tracking_for_subscription(
     return row["min_ts"] if row and row["min_ts"] else None
 
 
-def reorder_pipelines(con: sqlite3.Connection, orders: dict[str, int]) -> bool:
-    """Batch-update sort_order for pipelines. orders maps pipeline_id -> sort_order."""
+def reorder_pipelines(con: sqlite3.Connection, pipeline_ids: list[str]) -> bool:
+    """Assign sequential sort_order (0, 1, 2, ...) based on list position."""
+    now = datetime.now(timezone.utc).isoformat()
     try:
         con.executemany(
             "UPDATE pipelines SET sort_order = ?, updated_at = ? WHERE id = ?",
-            [
-                (order, datetime.now(timezone.utc).isoformat(), pid)
-                for pid, order in orders.items()
-            ],
+            [(idx, now, pid) for idx, pid in enumerate(pipeline_ids)],
         )
         con.commit()
         return True

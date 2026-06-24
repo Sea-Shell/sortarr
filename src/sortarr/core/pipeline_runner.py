@@ -80,6 +80,7 @@ async def execute_pipeline(state, trigger="manual", dry_run=False, pipeline_id=N
                 subscription_scope=p["subscription_scope"],
                 destination_playlist_id=p["destination_playlist_id"],
                 destination_playlist_title=p["destination_playlist_title"],
+                sort_order=p["sort_order"],
                 created_at=p["created_at"],
                 updated_at=p["updated_at"],
             )

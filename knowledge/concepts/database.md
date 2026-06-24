@@ -4,7 +4,7 @@ title: Sortarr Database
 description: SQLite persistence — connection handling, auto-run migrations, the table schema, and the repository layer that wraps all queries.
 resource: https://github.com/Sea-Shell/sortarr/tree/main/src/sortarr/db
 tags: [sortarr, database, sqlite, persistence]
-timestamp: 2026-06-24T10:00:00Z
+timestamp: 2026-06-24T12:00:00Z
 ---
 
 # Layout
@@ -41,6 +41,11 @@ startup; there is **no separate migrate command**. Tables use
 | `last_run`      | Last run timestamp                                                                                                                                  |
 | `routing_rules` | Legacy rule rows: `priority`, `field`, `operator`, `pattern`, `destination_playlist_id`, `enabled`, `minimum_length`, `maximum_length`, `catch_all` |
 | `pipeline_runs` | Run history (see `pipeline_runs` repository)                                                                                                        |
+
+The `pipelines` table has a `sort_order INTEGER NOT NULL DEFAULT 0` column
+(added in V9 migration). `get_pipelines()` orders by `sort_order ASC, name ASC`.
+`reorder_pipelines(con, pipeline_ids: list[str])` assigns sequential sort_order
+values (0, 1, 2, …) based on list position.
 
 Pipelines, selectors, ignore lists, and pipeline↔subscription/ignore-list
 attachments are managed through the `pipeline` and `ignore_lists` repositories.

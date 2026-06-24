@@ -1674,17 +1674,25 @@ renderers.pipelines = async function() {
     });
 
     // ── Reorder controls ─────────────────────────────────────
+    function swapAndSubmitReorder(idxA, idxB) {
+      // Swap the two positions in the pipelines array
+      const tmp = pipelines[idxA];
+      pipelines[idxA] = pipelines[idxB];
+      pipelines[idxB] = tmp;
+      // Send full ordered list to the backend
+      const pipeline_ids = pipelines.map(p => p.id);
+      api('/api/pipelines/reorder', {
+        method: 'PUT',
+        body: JSON.stringify({ pipeline_ids })
+      }).then(() => renderers.pipelines())
+        .catch(e => showToast('Reorder failed: ' + e.message, 'error'));
+    }
+
     document.querySelectorAll('.move-up-pipeline').forEach(btn => {
       btn.addEventListener('click', async function() {
         const idx = parseInt(this.dataset.idx);
         if (idx <= 0) return;
-        const orders = {};
-        orders[pipelines[idx].id] = pipelines[idx - 1].sort_order != null ? pipelines[idx - 1].sort_order : idx;
-        orders[pipelines[idx - 1].id] = pipelines[idx].sort_order != null ? pipelines[idx].sort_order : idx - 1;
-        try {
-          await api('/api/pipelines/reorder', { method: 'PUT', body: JSON.stringify({ orders }) });
-          renderers.pipelines();
-        } catch (e) { showToast('Reorder failed: ' + e.message, 'error'); }
+        swapAndSubmitReorder(idx, idx - 1);
       });
     });
 
@@ -1692,13 +1700,7 @@ renderers.pipelines = async function() {
       btn.addEventListener('click', async function() {
         const idx = parseInt(this.dataset.idx);
         if (idx >= pipelines.length - 1) return;
-        const orders = {};
-        orders[pipelines[idx].id] = pipelines[idx + 1].sort_order != null ? pipelines[idx + 1].sort_order : idx + 1;
-        orders[pipelines[idx + 1].id] = pipelines[idx].sort_order != null ? pipelines[idx].sort_order : idx;
-        try {
-          await api('/api/pipelines/reorder', { method: 'PUT', body: JSON.stringify({ orders }) });
-          renderers.pipelines();
-        } catch (e) { showToast('Reorder failed: ' + e.message, 'error'); }
+        swapAndSubmitReorder(idx, idx + 1);
       });
     });
   } catch { container.innerHTML = '<p class="error-state">Failed to load pipelines</p>'; }
