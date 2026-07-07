@@ -1123,7 +1123,6 @@ function showPage(pageId) {
   document.querySelectorAll('.sidebar-nav a').forEach(a => {
     a.classList.toggle('active', a.dataset.page === pageId);
   });
-  window.location.hash = pageId;
 }
 
 function renderPage(page) {
@@ -1141,6 +1140,7 @@ window.addEventListener('hashchange', () => {
   } else if (PAGES.includes(hash)) {
     renderPage(hash);
   } else {
+    // Unknown hash — show dashboard (safe: showPage no longer sets location.hash)
     showPage('dashboard');
   }
 });
@@ -1226,11 +1226,14 @@ function updateCompareBtn() {
 }
 
 async function openRunDetail(runId) {
+  window._pendingRunId = runId;
   location.hash = '#run-detail-' + runId;
   const [run, decisions] = await Promise.all([
     api('/api/pipeline/runs/' + runId),
     api('/api/pipeline/runs/' + runId + '/decisions'),
   ]);
+  // Stale-guard: discard if a newer openRunDetail was started while we waited
+  if (window._pendingRunId !== runId) return;
   if (!run) return;
 
   window._currentRunId = runId;
