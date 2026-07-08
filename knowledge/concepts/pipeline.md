@@ -4,7 +4,7 @@ title: Sortarr Pipeline Orchestrator
 description: The two-phase PipelineOrchestrator that collects subscription activity then routes videos into playlists per pipeline, with skip rules.
 resource: https://github.com/Sea-Shell/sortarr/blob/main/src/sortarr/core/pipeline.py
 tags: [sortarr, pipeline, routing, core]
-timestamp: 2026-06-24T10:00:00Z
+timestamp: 2026-07-08T12:00:00Z
 ---
 
 # Overview
@@ -31,6 +31,15 @@ The lookback (`published_after`) is computed by `_compute_published_after`:
 > Deliberately does **not** use per-subscription tracking here, to avoid
 > prematurely narrowing the window when multiple pipelines share a subscription.
 > The per-pipeline freshness check (Phase 2.2) handles reprocessing instead.
+
+The in-memory list (`activity_objects`) is **deduplicated by `video_id`** before
+being returned — if the YouTube API returns the same video as both an `upload`
+and a `playlistItem` entry, only the first occurrence (earliest `published_at`
+since results are sorted) is kept. This avoids redundant `get_video_duration()`
+API calls and inflated decision counters in Phase 2.
+
+The DB cache (`cache_activity()`) still writes **every** entry unconditionally;
+it relies on `INSERT OR REPLACE` for its own dedup.
 
 # Phase 2 — Per-Pipeline Processing
 

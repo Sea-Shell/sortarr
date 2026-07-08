@@ -70,7 +70,14 @@ class PipelineOrchestrator:
                 continue
 
             activity_objects = []
+            seen_videos: set[str] = set()
             for a in activities:
+                # Deduplicate by video_id — keep the earliest occurrence
+                # (activities are returned sorted by published_at descending,
+                #  so the first occurrence is the most recent; we keep it).
+                if a.video_id in seen_videos:
+                    continue
+                seen_videos.add(a.video_id)
                 obj = Activity(
                     video_id=a.video_id,
                     title=a.title,
