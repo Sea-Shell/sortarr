@@ -115,6 +115,9 @@ async def execute_pipeline(state, trigger="manual", dry_run=False, pipeline_id=N
                         }
                     else:
                         r = decision
+                        # Extract pipeline info for all decision types
+                        vid_pipeline_id = r.pipeline_id or None
+                        vid_pipeline_name = r.pipeline_name or None
                         if r.added:
                             action, reason = "added", "matched"
                             pipeline_name = getattr(r, "pipeline_name", None)
@@ -179,6 +182,8 @@ async def execute_pipeline(state, trigger="manual", dry_run=False, pipeline_id=N
                             "routed_to": r.route_result.playlist_title
                             if r.route_result
                             else None,
+                            "pipeline_id": vid_pipeline_id,
+                            "pipeline_name": vid_pipeline_name,
                         }
                     pr.insert_run_decision(tcon, run_id, d)
                     pr.update_pipeline_run_progress(

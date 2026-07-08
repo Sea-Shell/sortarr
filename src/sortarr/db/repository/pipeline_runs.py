@@ -92,8 +92,8 @@ def insert_run_decisions(
     try:
         now = datetime.now(timezone.utc).isoformat()
         con.executemany(
-            "INSERT INTO pipeline_run_decisions (run_id, video_id, title, subscription_title, action, reason, reason_detail, routed_to, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO pipeline_run_decisions (run_id, video_id, title, subscription_title, action, reason, reason_detail, routed_to, pipeline_id, pipeline_name, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 (
                     run_id,
@@ -104,6 +104,8 @@ def insert_run_decisions(
                     d.get("reason"),
                     d.get("reason_detail"),
                     d.get("routed_to"),
+                    d.get("pipeline_id"),
+                    d.get("pipeline_name"),
                     now,
                 )
                 for d in decisions
@@ -120,7 +122,7 @@ def get_run_decisions(
     con: sqlite3.Connection, run_id: int, limit: int = 1000
 ) -> list[dict]:
     cursor = con.execute(
-        "SELECT id, video_id, title, subscription_id, subscription_title, channel_id, action, reason, reason_detail, routed_to, created_at "
+        "SELECT id, video_id, title, subscription_id, subscription_title, channel_id, action, reason, reason_detail, routed_to, pipeline_id, pipeline_name, created_at "
         "FROM pipeline_run_decisions WHERE run_id = ? ORDER BY id ASC LIMIT ?",
         (run_id, limit),
     )
@@ -131,8 +133,8 @@ def insert_run_decision(con: sqlite3.Connection, run_id: int, decision: dict) ->
     try:
         now = datetime.now(timezone.utc).isoformat()
         con.execute(
-            "INSERT INTO pipeline_run_decisions (run_id, video_id, title, subscription_id, subscription_title, channel_id, action, reason, reason_detail, routed_to, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO pipeline_run_decisions (run_id, video_id, title, subscription_id, subscription_title, channel_id, action, reason, reason_detail, routed_to, pipeline_id, pipeline_name, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 run_id,
                 decision.get("video_id"),
@@ -144,6 +146,8 @@ def insert_run_decision(con: sqlite3.Connection, run_id: int, decision: dict) ->
                 decision.get("reason"),
                 decision.get("reason_detail"),
                 decision.get("routed_to"),
+                decision.get("pipeline_id"),
+                decision.get("pipeline_name"),
                 now,
             ),
         )
