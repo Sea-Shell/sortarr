@@ -403,8 +403,8 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
     letter-spacing: 0.02em;
     white-space: nowrap;
   }
-  .badge-completed, .badge-ok { background: var(--added-bg); color: var(--added); }
-  .badge-running, .badge-run { background: var(--skipped-bg); color: var(--skipped); }
+  .badge-completed, .badge-ok, .badge-success { background: var(--added-bg); color: var(--added); }
+  .badge-running, .badge-run, .badge-warning { background: var(--skipped-bg); color: var(--skipped); }
   .badge-failed, .badge-error { background: var(--error-bg); color: var(--error); }
   .badge-info { background: var(--info-bg); color: var(--info); }
   .badge-accent { background: var(--accent-muted); color: var(--accent); }
@@ -493,6 +493,7 @@ textarea { font-family: var(--font-mono); font-size: 0.75rem; resize: vertical; 
 .toast.error { background: var(--color-error-bg); color: var(--color-error); border-color: rgba(255,23,68,0.2); }
 .toast.success { background: var(--color-success-bg); color: var(--color-success); border-color: rgba(0,230,118,0.2); }
 .toast.warning { background: var(--color-warning-bg); color: var(--color-warning); border-color: rgba(230,138,0,0.2); }
+.toast.info { background: var(--color-info-bg); color: var(--color-info); border-color: rgba(21,101,192,0.2); }
 .spinner {
   display: inline-block;
   width: 14px; height: 14px;
@@ -1228,10 +1229,10 @@ function escapeHtml(s) {
 }
 
 function statusBadge(status) {
-  if (!status) return '<span class="badge badge-running">-</span>';
-  if (status === 'completed' || status === 'success') return '<span class="badge badge-completed">completed</span>';
+  if (!status) return '<span class="badge badge-warning">-</span>';
+  if (status === 'completed' || status === 'success') return '<span class="badge badge-success">completed</span>';
   if (status === 'failed' || status === 'completed_with_errors') return '<span class="badge badge-error">' + status.replace(/_/g,' ') + '</span>';
-  return '<span class="badge badge-running">' + status + '</span>';
+  return '<span class="badge badge-warning">' + status + '</span>';
 }
 
 const PAGES = ['dashboard','subscriptions','pipelines','search-results','settings','runs'];
@@ -1310,7 +1311,7 @@ async function loadRuns() {
   allRuns = await api('/api/pipeline/runs') || [];
   const container = document.getElementById('runsList');
   if (allRuns.length === 0) {
-    container.innerHTML = '<p class="empty-state" style="color:var(--text-tertiary)">No runs yet</p>';
+    container.innerHTML = '<div class="empty-state"><p>No pipeline runs found. Run a pipeline to see results here.</p></div>';
     return;
   }
   container.innerHTML = allRuns.map(r => renderRunCard(r, true)).join('');
@@ -1438,7 +1439,14 @@ async function openRunDetail(runId) {
   }
 
   document.getElementById('runDetailSummary').innerHTML = html;
-  document.getElementById('runDetailDecisions').innerHTML = '';
+
+  const totalDecisions = added.length + skipped.length + errors.length + subSkips.length;
+  if (totalDecisions === 0) {
+    document.getElementById('runDetailDecisions').innerHTML = '<div class="empty-state"><p>No decisions recorded for this run.</p></div>';
+  } else {
+    document.getElementById('runDetailDecisions').innerHTML = '';
+  }
+
   showPage('run-detail');
 }
 
@@ -1563,6 +1571,8 @@ renderers.dashboard = async function() {
     // last 5 runs
     const recent = runs.slice(0, 5);
     document.getElementById('dashboardRunsList').innerHTML = recent.map(r => renderRunCard(r)).join('');
+  } else {
+    document.getElementById('dashboardRunsList').innerHTML = '<div class="empty-state"><p>No recent runs yet. Trigger a pipeline to get started.</p></div>';
   }
 };
 
@@ -1631,6 +1641,10 @@ renderers.subscriptions = async function() {
   container.innerHTML = '<p class="loading">Loading...</p>';
   try {
     const subs = await api('/api/subscriptions') || [];
+    if (subs.length === 0) {
+      container.innerHTML = '<div class="empty-state"><p>No subscriptions yet. Add a YouTube channel ID or URL above.</p></div>';
+      return;
+    }
     container.innerHTML = subs.map(s => `
       <div class="sub-card">
         <div class="sub-avatar">
@@ -2185,6 +2199,18 @@ renderers.ignorelists = async function() {
   container.innerHTML = '<p class="loading">Loading...</p>';
   try {
     const lists = await api('/api/ignore-lists');
+    if (!lists || lists.length === 0) {
+      container.innerHTML =
+        '<div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4)">' +
+        '<input id="newListName" placeholder="List name..." style="flex:1">' +
+        '<select id="newListType" style="width:auto">' +
+        '<option value="word">Word</option><option value="video">Video ID</option><option value="subscription">Subscription</option>' +
+        '</select>' +
+        '<button id="addListBtn" class="btn btn-primary">Create</button></div>' +
+        '<div class="empty-state"><p>No ignore lists configured. Create one to skip matching videos.</p></div>';
+      setupIgnoreListCreateBtn();
+      return;
+    }
     container.innerHTML =
       '<div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4)">' +
       '<input id="newListName" placeholder="List name..." style="flex:1">' +
@@ -2210,9 +2236,12 @@ renderers.ignorelists = async function() {
         ) + '</div></div>'
       ).join('') + '</div>';
 
+    setupIgnoreListCreateBtn();
+
     async function refresh() { await renderers.ignorelists(); }
 
-    document.getElementById('addListBtn').onclick = async function() {
+    function setupIgnoreListCreateBtn() {
+      document.getElementById('addListBtn').onclick = async function() {
       const name = document.getElementById('newListName').value.trim();
       const type = document.getElementById('newListType').value;
       if (!name) return;
@@ -2223,6 +2252,7 @@ renderers.ignorelists = async function() {
         showToast('List created', 'success');
       } catch (e) { showToast('Create failed: ' + e.message); }
     };
+    }
 
     container.querySelectorAll('.del-ignore-list').forEach(btn => {
       btn.onclick = async function() {
