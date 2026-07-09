@@ -21,10 +21,11 @@
   --text-primary: #1A1A1A;
   --text-secondary: #5C5A54;
   --text-tertiary: #8C8A84;
-  --text-muted: #B0ADA6;
+  --text-muted: #767676;
   --accent: #E62117;
   --accent-hover: #CC1E15;
   --accent-muted: rgba(230,33,23,0.08);
+  --hover-bg: var(--accent-muted);
   --added: #2E7D32;
   --added-bg: rgba(46,125,50,0.06);
   --skipped: #E65100;
@@ -51,6 +52,53 @@
   --radius-sm: 4px;
   --sidebar-width: 220px;
   --header-height: 48px;
+
+  /* ── Semantic color aliases ── */
+  --color-primary: var(--accent);            /* #E62117 */
+  --color-primary-hover: var(--accent-hover);/* #CC1E15 */
+  --color-primary-muted: var(--accent-muted);
+  --color-link: #CC1E15;                     /* darker than primary for AA on canvas */
+  --color-link-hover: var(--accent);         /* #E62117 */
+  --color-canvas: var(--canvas);             /* #F7F5F0 */
+  --color-surface: var(--surface);           /* #FFFFFF */
+  --color-surface-2: var(--surface-2);       /* #F0EDE8 */
+  --color-surface-hover: var(--surface-hover);
+  --color-on-surface: var(--text-primary);   /* #1A1A1A */
+  --color-secondary: var(--text-secondary);  /* #5C5A54 */
+  --color-tertiary: var(--text-tertiary);    /* #8C8A84 */
+  --color-muted: #767676;                    /* FIXED: was #B0ADA6 (2.2:1 FAIL) */
+  --color-border: var(--border);
+  --color-border-hover: var(--border-hover);
+  --color-border-focus: var(--border-focus);
+  --color-success: var(--added);             /* #2E7D32 */
+  --color-success-bg: var(--added-bg);
+  --color-warning: var(--skipped);           /* #E65100 */
+  --color-warning-bg: var(--skipped-bg);
+  --color-error: var(--error);               /* #C62828 */
+  --color-error-bg: var(--error-bg);
+  --color-info: var(--info);                 /* #1565C0 */
+  --color-info-bg: var(--info-bg);
+
+  /* ── Spacing aliases (keep existing --space-1..8) ── */
+  --sp-xs: var(--space-1);   /* 4px */
+  --sp-sm: var(--space-2);   /* 8px */
+  --sp-md: var(--space-3);   /* 12px */
+  --sp-lg: var(--space-4);   /* 16px */
+  --sp-xl: var(--space-5);   /* 20px */
+  --sp-2xl: var(--space-6);  /* 24px */
+  --sp-3xl: var(--space-7);  /* 32px */
+  --sp-4xl: var(--space-8);  /* 40px */
+
+  /* ── Radius aliases ── */
+  --radius-sm: 4px;
+  --radius-md: var(--radius);  /* 6px */
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* ── Font aliases ── */
+  --font-display: "Fraunces", Georgia, serif;
+  --font-ui: "Inter", -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
 }
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -209,7 +257,7 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
   font-weight: 400;
 }
 .card {
-  background: var(--surface-1);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: var(--space-4);
@@ -307,7 +355,7 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
     transform: translateY(-1px);
   }
   .btn-sm { padding: 2px var(--space-2); font-size: 0.75rem; }
-  .btn-icon { padding: var(--space-1); line-height: 1; }
+  .btn-icon { padding: var(--space-1); line-height: 1; min-width: 44px; min-height: 44px; }
   .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
   table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
   thead { position: sticky; top: 0; z-index: 1; }
@@ -432,9 +480,9 @@ textarea { font-family: var(--font-mono); font-size: 0.75rem; resize: vertical; 
   border: 1px solid var(--border);
 }
 .toast.show { display: block; }
-.toast.error { background: var(--red-muted); color: var(--red); border-color: rgba(255,23,68,0.2); }
-.toast.success { background: var(--green-muted); color: var(--green); border-color: rgba(0,230,118,0.2); }
-.toast.warning { background: var(--amber-muted); color: var(--amber); border-color: rgba(230,138,0,0.2); }
+.toast.error { background: var(--color-error-bg); color: var(--color-error); border-color: rgba(255,23,68,0.2); }
+.toast.success { background: var(--color-success-bg); color: var(--color-success); border-color: rgba(0,230,118,0.2); }
+.toast.warning { background: var(--color-warning-bg); color: var(--color-warning); border-color: rgba(230,138,0,0.2); }
 .spinner {
   display: inline-block;
   width: 14px; height: 14px;
@@ -478,7 +526,7 @@ textarea { font-family: var(--font-mono); font-size: 0.75rem; resize: vertical; 
 }
 .config-tab:hover { color: var(--text-secondary); background: var(--surface-2); }
 .config-tab.active {
-  color: var(--accent); background: var(--surface-3);
+  color: var(--accent); background: var(--surface-hover);
   box-shadow: inset 0 -1px 0 var(--accent);
 }
 .config-pane { display: block; max-width: 520px; }
@@ -500,7 +548,7 @@ textarea { font-family: var(--font-mono); font-size: 0.75rem; resize: vertical; 
 }
 .settings-tab:hover { color: var(--text-secondary); background: var(--surface-2); }
 .settings-tab.active {
-  color: var(--accent); background: var(--surface-3);
+  color: var(--accent); background: var(--surface-hover);
   box-shadow: inset 0 -1px 0 var(--accent);
 }
 .settings-pane { display: none; }
@@ -509,7 +557,7 @@ textarea { font-family: var(--font-mono); font-size: 0.75rem; resize: vertical; 
 .empty-state { padding: var(--space-6); text-align: center; color: var(--text-tertiary); font-size: 0.875rem; }
 .empty-state p { margin-bottom: var(--space-2); }
 .loading { color: var(--text-tertiary); font-size: 0.875rem; }
-.error-state { color: var(--red); font-size: 0.875rem; }
+.error-state { color: var(--color-error); font-size: 0.875rem; }
 
 /* ─── Run Cards ─── */
 .run-card {
@@ -585,10 +633,10 @@ textarea { font-family: var(--font-mono); font-size: 0.75rem; resize: vertical; 
   color: var(--text-muted); cursor: pointer;
   font-size: 0.875rem; line-height: 1; padding: 0 2px;
 }
-.entry-tag .del-entry:hover { color: var(--red); }
+.entry-tag .del-entry:hover { color: var(--color-error); }
 hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--space-5) 0; }
 .auth-card-ok { border-left: 3px solid var(--added); box-shadow: inset 0 0 20px var(--added-bg); }
-.auth-card-fail { border-left: 3px solid var(--red); }
+.auth-card-fail { border-left: 3px solid var(--color-error); }
 .section-title {
   font-size: 0.8125rem;
   font-weight: 600;
