@@ -410,7 +410,7 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
   .badge-accent { background: var(--accent-muted); color: var(--accent); }
   .tag-dryrun {
     display: inline-flex; align-items: center;
-    font-family: var(--font-mono); font.size: 0.625rem; font-weight: 600;
+    font-family: var(--font-mono); font-size: 0.625rem; font-weight: 600;
     padding: 1px 4px; border-radius: 2px;
     background: var(--skipped-bg); color: var(--skipped);
     letter-spacing: 0.03em; margin-left: 4px;
@@ -453,7 +453,7 @@ textarea { font-family: var(--font-mono); font-size: 0.75rem; resize: vertical; 
   display: none;
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.7);
-  z-index: 200;
+  z-index: 250;
   align-items: flex-start; justify-content: center;
   overflow-y: auto; padding: var(--space-6);
 }
@@ -2674,9 +2674,6 @@ document.getElementById('pipelineCancel')?.addEventListener('click', () => {
   closeModal(modal);
 });
 
-sidebarOverlay?.addEventListener('click', () => {
-  if (sidebar.classList.contains('open')) toggleMobileMenu();
-});
 </script>
 </body>
 </html>
