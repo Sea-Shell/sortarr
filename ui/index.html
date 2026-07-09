@@ -945,6 +945,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--sp
   .toast { left: auto; transform: none; right: var(--sp-lg); }
 }
 </style>
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
 </head>
 <body>
 
@@ -956,33 +957,33 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--sp
     </div>
     <nav class="sidebar-nav" aria-label="Application sections">
       <a class="active" data-page="dashboard" href="#dashboard" role="menuitem" aria-current="page">
-        <span class="nav-icon" aria-hidden="true">&#9632;</span> Dashboard
+        <i class="nav-icon ph ph-grid-four" aria-hidden="true"></i> Dashboard
       </a>
       <a data-page="runs" href="#runs" role="menuitem">
-        <span class="nav-icon" aria-hidden="true">&#8635;</span> Runs
+        <i class="nav-icon ph ph-clock-counter-clockwise" aria-hidden="true"></i> Runs
       </a>
       <a data-page="subscriptions" href="#subscriptions" role="menuitem">
-        <span class="nav-icon" aria-hidden="true">&#9776;</span> Subscriptions
+        <i class="nav-icon ph ph-list-bullets" aria-hidden="true"></i> Subscriptions
       </a>
       <a data-page="pipelines" href="#pipelines" role="menuitem">
-        <span class="nav-icon" aria-hidden="true">&#8594;</span> Pipelines
+        <i class="nav-icon ph ph-arrow-elbow-down-right" aria-hidden="true"></i> Pipelines
       </a>
       <a data-page="settings" href="#settings" role="menuitem">
-        <span class="nav-icon" aria-hidden="true">&#9881;</span> Settings
+        <i class="nav-icon ph ph-gear-six" aria-hidden="true"></i> Settings
       </a>
     </nav>
     <div class="sidebar-footer">
-      <button id="triggerBtn" class="btn btn-primary" style="width:100%">&#9654; Run Pipeline</button>
-      <button id="dryRunBtn" class="btn btn-secondary" style="width:100%;margin-top:6px">&#9678; Dry Run</button>
+      <button id="triggerBtn" class="btn btn-primary" style="width:100%"><i class="ph ph-play" aria-hidden="true"></i> Run Pipeline</button>
+      <button id="dryRunBtn" class="btn btn-secondary" style="width:100%;margin-top:6px"><i class="ph ph-play-circle" aria-hidden="true"></i> Dry Run</button>
     </div>
   </aside>
   <div class="main-content">
     <header class="header">
       <button id="mobileMenuToggle" class="btn btn-ghost btn-icon" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="sidebar" style="display:none">
-        <span aria-hidden="true">&#9776;</span>
+        <i class="ph ph-list" aria-hidden="true"></i>
       </button>
       <div class="header-search">
-        <span style="color:var(--text-tertiary);font-size:0.875rem" aria-hidden="true">&#128269;</span>
+        <i class="ph ph-magnifying-glass" aria-hidden="true" style="color:var(--text-tertiary);font-size:0.875rem"></i>
         <input id="globalSearchInput" type="search" placeholder="Search video ID..." aria-label="Search videos by ID" aria-controls="searchResultsContent" autocomplete="off">
       </div>
       <span style="font-size:0.75rem;color:var(--text-tertiary);display:inline-flex;align-items:center;gap:6px;margin-left:auto">
@@ -1032,7 +1033,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--sp
     </div>
     <div id="searchResultsContent"><p class="loading">Searching...</p></div>
     <p style="margin:var(--space-4) 0">
-      <a href="#dashboard" onclick="showPage('dashboard')" style="color:var(--text-tertiary);font-size:0.875rem">&larr; Back</a>
+      <a href="#dashboard" onclick="showPage('dashboard')" style="color:var(--text-tertiary);font-size:0.875rem"><i class="ph ph-arrow-left" aria-hidden="true"></i> Back</a>
     </p>
   </section>
 
@@ -1128,7 +1129,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--sp
       <h2>Runs</h2>
       <div style="display:flex;gap:var(--space-3);align-items:center">
         <button id="compareBtn" class="btn btn-secondary" style="display:none" onclick="openComparison()">
-          &#8646; Compare Selected
+          <i class="ph ph-arrows-left-right" aria-hidden="true"></i> Compare Selected
         </button>
       </div>
     </div>
@@ -1140,7 +1141,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--sp
       <h2>Run Details</h2>
     </div>
     <div id="runDetailSummary"></div>
-    <p style="margin:var(--space-4) 0"><a href="#runs" style="color:var(--text-secondary);font-size:0.875rem">&larr; Back to Runs</a></p>
+    <p style="margin:var(--space-4) 0"><a href="#runs" style="color:var(--text-secondary);font-size:0.875rem"><i class="ph ph-arrow-left" aria-hidden="true"></i> Back to Runs</a></p>
     <div id="runDetailDecisions"><p class="loading">Loading...</p></div>
   </section>
 
@@ -1150,7 +1151,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--sp
     </div>
     <div id="comparisonView"></div>
     <p style="margin:var(--space-4) 0">
-      <a href="#runs" onclick="showPage('runs')" style="color:var(--text-tertiary);font-size:0.875rem">&larr; Back to Runs</a>
+      <a href="#runs" onclick="showPage('runs')" style="color:var(--text-tertiary);font-size:0.875rem"><i class="ph ph-arrow-left" aria-hidden="true"></i> Back to Runs</a>
     </p>
   </section>
 
@@ -1394,7 +1395,7 @@ async function openRunDetail(runId) {
       '<span class="run-summary-value error">' + (run.errors || 0) + '</span>' +
     '</div>' +
     '<div class="run-summary-item" style="margin-left:auto">' +
-      '<button class="btn btn-ghost" onclick="openComparisonFor(' + runId + ')">&#8646; Compare</button>' +
+      '<button class="btn btn-ghost" onclick="openComparisonFor(' + runId + ')"><i class="ph ph-arrows-left-right" aria-hidden="true"></i> Compare</button>' +
     '</div>' +
   '</div>';
 
@@ -1456,7 +1457,7 @@ function renderDecisionCard(d, type) {
       (d.subscription_title ? '<span><span class="label">Channel:</span> ' + channelLink + '</span>' : '') +
       (duration ? '<span><span class="label">Duration:</span> ' + duration + '</span>' : '') +
       (pipeline ? '<span><span class="label">Pipeline:</span> ' + escapeHtml(pipeline) + '</span>' : '') +
-      (d.video_id ? '<span><a href="https://www.youtube.com/watch?v=' + escapeHtml(d.video_id) + '" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">&#9654; Watch</a></span>' : '') +
+      (d.video_id ? '<span><a href="https://www.youtube.com/watch?v=' + escapeHtml(d.video_id) + '" target="_blank" rel="noopener noreferrer" style="color:var(--accent)"><i class="ph ph-play" aria-hidden="true"></i> Watch</a></span>' : '') +
     '</div>' +
     (reason ? '<div class="decision-card-detail" style="color:var(--text-tertiary);font-size:0.75rem">' + escapeHtml(reason) + '</div>' : '') +
   '</div>';
@@ -1574,7 +1575,7 @@ document.getElementById('triggerBtn')?.addEventListener('click', async function(
   } catch (e) {
     showToast(e.message, 'error');
   } finally {
-    this.disabled = false; this.textContent = '\u25B6 Run Pipeline';
+    this.disabled = false; this.innerHTML = '<i class="ph ph-play" aria-hidden="true"></i> Run Pipeline';
   }
 });
 
@@ -1586,7 +1587,7 @@ document.getElementById('dryRunBtn')?.addEventListener('click', async function()
   } catch (e) {
     showToast(e.message, 'error');
   } finally {
-    this.disabled = false; this.textContent = '\u25CE Dry Run';
+    this.disabled = false; this.innerHTML = '<i class="ph ph-play-circle" aria-hidden="true"></i> Dry Run';
   }
 });
 
@@ -1740,11 +1741,11 @@ renderers.pipelines = async function() {
           <span>Selectors: ${(p.selectors || []).length}</span>
         </div>
         <div class="pipeline-card-actions">
-          <button class="move-up-pipeline btn btn-ghost btn-sm" data-pid="${p.id}" data-idx="${i}" title="Move up" style="font-size:0.9rem;padding:0 6px">&#9650;</button>
-          <button class="move-down-pipeline btn btn-ghost btn-sm" data-pid="${p.id}" data-idx="${i}" title="Move down" style="font-size:0.9rem;padding:0 6px">&#9660;</button>
+          <button class="move-up-pipeline btn btn-ghost btn-sm" data-pid="${p.id}" data-idx="${i}" title="Move up" style="font-size:0.9rem;padding:0 6px"><i class="ph ph-caret-up" aria-hidden="true"></i></button>
+          <button class="move-down-pipeline btn btn-ghost btn-sm" data-pid="${p.id}" data-idx="${i}" title="Move down" style="font-size:0.9rem;padding:0 6px"><i class="ph ph-caret-down" aria-hidden="true"></i></button>
           <span style="color:var(--text-muted);font-size:0.75rem;display:flex;align-items:center">${p.sort_order != null ? p.sort_order : '-'}</span>
-          <button class="trigger-pipeline btn btn-primary btn-sm" data-pid="${p.id}">&#9654; Run</button>
-          <button class="dryrun-pipeline btn btn-secondary btn-sm" data-pid="${p.id}">&#9678; Dry Run</button>
+          <button class="trigger-pipeline btn btn-primary btn-sm" data-pid="${p.id}"><i class="ph ph-play" aria-hidden="true"></i> Run</button>
+          <button class="dryrun-pipeline btn btn-secondary btn-sm" data-pid="${p.id}"><i class="ph ph-play-circle" aria-hidden="true"></i> Dry Run</button>
           <button class="edit-pipeline btn btn-ghost btn-sm" data-pid="${p.id}">Edit</button>
           <button class="del-pipeline btn btn-danger btn-sm" data-pid="${p.id}">Del</button>
         </div>
@@ -1762,7 +1763,7 @@ renderers.pipelines = async function() {
         } catch (e) {
           showToast('Trigger failed: ' + e.message, 'error');
         } finally {
-          this.disabled = false; this.textContent = '\u25B6 Run';
+          this.disabled = false; this.innerHTML = '<i class="ph ph-play" aria-hidden="true"></i> Run';
         }
       });
     });
@@ -1794,7 +1795,7 @@ renderers.pipelines = async function() {
         } catch (e) {
           showToast('Dry run failed: ' + e.message, 'error');
         } finally {
-          this.disabled = false; this.textContent = '\u25CE Dry Run';
+          this.disabled = false; this.innerHTML = '<i class="ph ph-play-circle" aria-hidden="true"></i> Dry Run';
         }
       });
     });
@@ -1869,6 +1870,7 @@ function openPipelineModal(pipeline) {
   document.getElementById('pipelineDistanceGroup').style.display = document.getElementById('pipelineCheckTitle').checked ? 'block' : 'none';
 
   const sel = document.getElementById('pipelineDestPlaylist');
+  // <option> cannot contain HTML elements — keeping text fallback
   sel.innerHTML = '<option value="">\u23F3 Loading...</option>';
   sel.disabled = true;
   api('/api/playlists').then(playlists => {
