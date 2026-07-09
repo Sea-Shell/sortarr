@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: sortarr
-          image: docker.io/bateau/sortarr:v2.20.5
+          image: docker.io/bateau/sortarr:v2.20.6
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
