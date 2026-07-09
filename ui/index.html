@@ -1422,24 +1422,24 @@ function renderDecisionCardContent(d, type) {
 const renderers = {};
 
 renderers.dashboard = async function() {
-  try {
-    const runs = await api('/api/pipeline/runs');
-    const subs = await api('/api/subscriptions');
-    const config = await api('/api/config');
+  const [runs, subs, config] = await Promise.all([
+    api('/api/pipeline/runs').catch(() => null),
+    api('/api/subscriptions').catch(() => null),
+    api('/api/config').catch(() => null),
+  ]);
 
-    document.getElementById('statSubs').textContent = (subs || []).length;
-    document.getElementById('statPipelines').textContent = (config.pipelines || []).length;
+  document.getElementById('statSubs').textContent = (subs || []).length;
+  document.getElementById('statPipelines').textContent = ((config && config.pipelines) || []).length;
 
-    if (runs && runs.length > 0) {
-      const last = runs[0];
-      document.getElementById('statVideosAdded').textContent = last.videos_added || 0;
-      document.getElementById('statLastRun').textContent = formatTime(last.created_at);
+  if (runs && runs.length > 0) {
+    const last = runs[0];
+    document.getElementById('statVideosAdded').textContent = last.videos_added || 0;
+    document.getElementById('statLastRun').textContent = formatTime(last.created_at);
 
-      // last 5 runs
-      const recent = runs.slice(0, 5);
-      document.getElementById('dashboardRunsList').innerHTML = recent.map(r => renderRunCard(r)).join('');
-    }
-  } catch { /* cards stay as '-' */ }
+    // last 5 runs
+    const recent = runs.slice(0, 5);
+    document.getElementById('dashboardRunsList').innerHTML = recent.map(r => renderRunCard(r)).join('');
+  }
 };
 
 document.getElementById('triggerBtn')?.addEventListener('click', async function() {

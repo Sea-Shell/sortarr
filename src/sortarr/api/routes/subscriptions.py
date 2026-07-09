@@ -34,20 +34,18 @@ def _get_added_count(con, sub_id: str) -> int:
 @router.get("/subscriptions", response_model=List[SubscriptionResponse])
 async def list_subscriptions(request: Request):
     state = get_state(request)
-    youtube = require_youtube(state)
-    try:
-        subs = youtube.get_subscriptions()
-    except Exception as e:
-        log.error("Failed to list subscriptions: %s", e)
-        raise HTTPException(status_code=502, detail=str(e))
+    rows = state.db_con.execute(
+        "SELECT id, title, COALESCE(added_to_playlist_count, 0) as added_to_playlist_count "
+        "FROM subscription ORDER BY title ASC"
+    ).fetchall()
     return [
         SubscriptionResponse(
-            id=s.id,
-            title=s.title,
-            channel_id=s.channel_id,
-            added_to_playlist_count=_get_added_count(state.db_con, s.id),
+            id=row["id"],
+            title=row["title"],
+            channel_id=row["id"],  # id == channel_id per YouTube client
+            added_to_playlist_count=row["added_to_playlist_count"],
         )
-        for s in subs
+        for row in rows
     ]
 
 

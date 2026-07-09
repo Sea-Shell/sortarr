@@ -41,25 +41,6 @@ async def list_runs(request: Request):
     return [PipelineRunResponse(**r) for r in runs]
 
 
-@router.get("/pipeline/runs/{run_id}", response_model=PipelineRunResponse)
-async def get_run(run_id: int, request: Request):
-    state = get_state(request)
-    run = repo.get_pipeline_run(state.db_con, run_id)
-    if not run:
-        raise HTTPException(status_code=404, detail="Run not found")
-    return PipelineRunResponse(**run)
-
-
-@router.get(
-    "/pipeline/runs/{run_id}/decisions",
-    response_model=List[RunDecisionResponse],
-)
-async def get_run_decisions(run_id: int, request: Request):
-    state = get_state(request)
-    decisions = repo.get_run_decisions(state.db_con, run_id)
-    return [RunDecisionResponse(**d) for d in decisions]
-
-
 @router.get("/pipeline/runs/search", response_model=List[VideoSearchResult])
 async def search_video_across_runs(request: Request, video_id: str, limit: int = 50):
     """Search for a video ID across all pipeline runs in a single query."""
@@ -82,3 +63,22 @@ async def search_video_across_runs(request: Request, video_id: str, limit: int =
                     )
                 )
     return results
+
+
+@router.get("/pipeline/runs/{run_id}", response_model=PipelineRunResponse)
+async def get_run(run_id: int, request: Request):
+    state = get_state(request)
+    run = repo.get_pipeline_run(state.db_con, run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+    return PipelineRunResponse(**run)
+
+
+@router.get(
+    "/pipeline/runs/{run_id}/decisions",
+    response_model=List[RunDecisionResponse],
+)
+async def get_run_decisions(run_id: int, request: Request):
+    state = get_state(request)
+    decisions = repo.get_run_decisions(state.db_con, run_id)
+    return [RunDecisionResponse(**d) for d in decisions]

@@ -4,7 +4,7 @@ title: Sortarr HTTP API
 description: FastAPI app factory, shared AppState, dependency providers, and the REST routes for config, auth, pipelines, subscriptions, and metrics.
 resource: https://github.com/Sea-Shell/sortarr/tree/main/src/sortarr/api
 tags: [sortarr, api, fastapi, rest]
-timestamp: 2026-06-24T12:00:00Z
+timestamp: 2026-07-09T12:00:00Z
 ---
 
 # App factory
@@ -28,10 +28,10 @@ Route modules in `src/sortarr/api/routes/`:
 | `health.py`           | `GET /api/health`                                                                                                |
 | `config.py`           | `GET/PUT /api/config`, `GET/POST /api/config/ignores`, `DELETE /api/config/ignores/{id}`                         |
 | `auth.py`             | `GET /api/auth/status`, `POST /api/auth/device`, `POST /api/auth/poll` — see [auth](/knowledge/concepts/auth.md) |
-| `subscriptions.py`    | `GET /api/subscriptions`, `GET /api/subscriptions/{cid}/activity`                                                |
+| `subscriptions.py`    | `GET /api/subscriptions` (DB-backed, no YouTube API dependency), `GET /api/subscriptions/{cid}/activity` (requires YouTube API) |
 | `rules.py`            | CRUD `/api/rules` (legacy routing rules)                                                                         |
-| `pipelines.py`        | CRUD pipelines, selectors, attachments                                                                           |
-| `pipeline.py`         | `POST /api/pipeline/trigger`, `GET /api/pipeline/runs`, `GET /api/pipeline/runs/{id}`                            |
+| `pipelines.py`        | CRUD pipelines, selectors, attachments, ignore-lists CRUD                                                        |
+| `pipeline.py`         | `POST /api/pipeline/trigger`, `GET /api/pipeline/runs`, `GET /api/pipeline/runs/search`, `GET /api/pipeline/runs/{id}`, `GET /api/pipeline/runs/{id}/decisions` |
 | `playlist_tracker.py` | Playlist reconciliation endpoints                                                                                |
 | `stats.py`            | Aggregate stats                                                                                                  |
 | (root)                | `GET /metrics` — Prometheus                                                                                      |
