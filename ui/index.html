@@ -983,6 +983,10 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--sp
   .pipeline-card-actions .del-pipeline {
     display: none;
   }
+  .pipeline-overflow-btn {
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
 }
 @media (min-width: 640px) and (max-width: 1024px) {
   .sidebar { width: 64px; }
@@ -1855,16 +1859,21 @@ renderers.pipelines = async function() {
         <div class="pipeline-card-actions">
           <div class="pipeline-overflow-trigger overflow-menu-trigger">
             <button class="pipeline-overflow-btn btn btn-ghost btn-icon" aria-label="More actions" aria-expanded="false"><i class="ph ph-dots-three-vertical" aria-hidden="true"></i></button>
-            <div class="overflow-menu">
+            <div class="overflow-menu" style="right:auto;left:0">
               <button class="overflow-menu-item move-up-pipeline" data-pid="${p.id}" data-idx="${i}"><i class="ph ph-caret-up" aria-hidden="true"></i> Move up</button>
               <button class="overflow-menu-item move-down-pipeline" data-pid="${p.id}" data-idx="${i}"><i class="ph ph-caret-down" aria-hidden="true"></i> Move down</button>
               <button class="overflow-menu-item edit-pipeline" data-pid="${p.id}"><i class="ph ph-pencil" aria-hidden="true"></i> Edit</button>
               <button class="overflow-menu-item del-pipeline" data-pid="${p.id}"><i class="ph ph-trash" aria-hidden="true"></i> Delete</button>
             </div>
           </div>
+          <!-- Direct children for tablet/desktop — visible inline on larger screens -->
+          <button class="move-up-pipeline btn btn-ghost btn-sm" data-pid="${p.id}" data-idx="${i}" title="Move up"><i class="ph ph-caret-up" aria-hidden="true"></i></button>
+          <button class="move-down-pipeline btn btn-ghost btn-sm" data-pid="${p.id}" data-idx="${i}" title="Move down"><i class="ph ph-caret-down" aria-hidden="true"></i></button>
           <span style="color:var(--text-muted);font-size:0.75rem;display:flex;align-items:center">${p.sort_order != null ? p.sort_order : '-'}</span>
           <button class="trigger-pipeline btn btn-primary btn-sm" data-pid="${p.id}"><i class="ph ph-play" aria-hidden="true"></i> Run</button>
           <button class="dryrun-pipeline btn btn-secondary btn-sm" data-pid="${p.id}"><i class="ph ph-play-circle" aria-hidden="true"></i> Dry Run</button>
+          <button class="edit-pipeline btn btn-ghost btn-sm" data-pid="${p.id}" title="Edit"><i class="ph ph-pencil" aria-hidden="true"></i></button>
+          <button class="del-pipeline btn btn-danger btn-sm" data-pid="${p.id}" title="Delete"><i class="ph ph-trash" aria-hidden="true"></i> Del</button>
         </div>
       </div>`;
     }).join('');
