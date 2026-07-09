@@ -868,6 +868,69 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--sp
   gap: var(--space-2);
   margin-top: var(--space-3);
 }
+.overflow-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 50;
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 0;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  min-width: 160px;
+  display: none;
+}
+.overflow-menu.open { display: block; }
+.overflow-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-ui);
+}
+.overflow-menu-item:hover {
+  background: #F0EDE8;
+  color: var(--text-primary);
+}
+.overflow-menu-trigger {
+  position: relative;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-card {
+  background: var(--color-surface-2);
+  border-radius: 6px;
+  min-height: 80px;
+  margin-bottom: 12px;
+  animation: shimmer 2s linear infinite;
+  background: linear-gradient(90deg, var(--color-surface-2) 25%, var(--color-surface-hover) 50%, var(--color-surface-2) 75%);
+  background-size: 200% 100%;
+}
+.skeleton-text {
+  background: var(--color-surface-2);
+  border-radius: 4px;
+  min-height: 14px;
+  width: 60%;
+  margin-bottom: 8px;
+  animation: shimmer 2s linear infinite;
+  background: linear-gradient(90deg, var(--color-surface-2) 25%, var(--color-surface-hover) 50%, var(--color-surface-2) 75%);
+  background-size: 200% 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-card, .skeleton-text { animation: none; }
+}
+
 @media (max-width: 639px) {
   .sidebar {
     position: fixed;
@@ -897,8 +960,29 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--sp
   .comparison-grid { grid-template-columns: 1fr; }
   .run-summary { flex-direction: column; gap: var(--space-3); }
   .form-row { flex-direction: column; }
-  .modal { padding: var(--space-4); }
+  .modal-overlay { align-items: flex-end; }
+  .modal {
+    padding: var(--space-4);
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    margin: 0;
+    border-radius: 12px 12px 0 0;
+    animation: slide-up 250ms ease-out;
+  }
+  @keyframes slide-up {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
   .toast { left: 50%; transform: translateX(-50%); right: auto; }
+  /* Pipeline card: show ⋮, hide individual action buttons on phone */
+  .pipeline-overflow-trigger { display: inline-block; }
+  .pipeline-card-actions .move-up-pipeline,
+  .pipeline-card-actions .move-down-pipeline,
+  .pipeline-card-actions .edit-pipeline,
+  .pipeline-card-actions .del-pipeline {
+    display: none;
+  }
 }
 @media (min-width: 640px) and (max-width: 1024px) {
   .sidebar { width: 64px; }
@@ -924,6 +1008,13 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--sp
   .run-summary { flex-direction: column; gap: var(--space-3); }
   .form-row { flex-direction: column; }
   .modal { padding: var(--space-4); }
+  .pipeline-overflow-trigger { display: none; }
+  .pipeline-card-actions .move-up-pipeline,
+  .pipeline-card-actions .move-down-pipeline,
+  .pipeline-card-actions .edit-pipeline,
+  .pipeline-card-actions .del-pipeline {
+    display: inline-flex;
+  }
 }
 @media (min-width: 1025px) {
   .sidebar { width: 220px; }
@@ -944,6 +1035,13 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--sp
   .run-summary { flex-direction: row; gap: var(--space-6); }
   .form-row { flex-direction: row; }
   .toast { left: auto; transform: none; right: var(--sp-lg); }
+  .pipeline-overflow-trigger { display: none; }
+  .pipeline-card-actions .move-up-pipeline,
+  .pipeline-card-actions .move-down-pipeline,
+  .pipeline-card-actions .edit-pipeline,
+  .pipeline-card-actions .del-pipeline {
+    display: inline-flex;
+  }
 }
 </style>
 <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
@@ -1024,7 +1122,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--sp
 
     <div id="recentRuns">
       <h3 class="section-title" style="margin-bottom:var(--space-4)">Recent Runs</h3>
-      <div id="dashboardRunsList"><p class="loading">Loading...</p></div>
+      <div id="dashboardRunsList"><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div></div>
     </div>
   </section>
 
@@ -1046,7 +1144,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--sp
       <input id="addSubInput" type="text" placeholder="YouTube channel ID or URL..." style="max-width:420px">
       <button class="btn btn-primary" onclick="addSubscription()">+ Add</button>
     </div>
-    <div id="subscriptionsList"><p class="loading">Loading...</p></div>
+    <div id="subscriptionsList"><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div></div>
   </section>
 
   <section id="pipelines" class="page">
@@ -1134,7 +1232,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--sp
         </button>
       </div>
     </div>
-    <div id="runsList"><p class="loading">Loading...</p></div>
+    <div id="runsList"><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div></div>
   </section>
 
   <section id="run-detail" class="page">
@@ -1143,7 +1241,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--sp
     </div>
     <div id="runDetailSummary"></div>
     <p style="margin:var(--space-4) 0"><a href="#runs" style="color:var(--text-secondary);font-size:0.875rem"><i class="ph ph-arrow-left" aria-hidden="true"></i> Back to Runs</a></p>
-    <div id="runDetailDecisions"><p class="loading">Loading...</p></div>
+    <div id="runDetailDecisions"><div class="skeleton-card"></div><div class="skeleton-card"></div></div>
   </section>
 
   <section id="comparison" class="page">
@@ -1638,7 +1736,7 @@ document.getElementById('globalSearchInput').addEventListener('keydown', async (
 
 renderers.subscriptions = async function() {
   const container = document.getElementById('subscriptionsList');
-  container.innerHTML = '<p class="loading">Loading...</p>';
+  container.innerHTML = '<div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>';
   try {
     const subs = await api('/api/subscriptions') || [];
     if (subs.length === 0) {
@@ -1725,7 +1823,7 @@ async function loadPipelineHistory(pipelineName) {
 
 renderers.pipelines = async function() {
   const container = document.getElementById('pipelinesList');
-  container.innerHTML = '<p class="loading">Loading...</p>';
+  container.innerHTML = '<div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>';
   try {
     const pipelines = await api('/api/pipelines');
     await loadPipelineIgnoreLists();
@@ -1755,13 +1853,18 @@ renderers.pipelines = async function() {
           <span>Selectors: ${(p.selectors || []).length}</span>
         </div>
         <div class="pipeline-card-actions">
-          <button class="move-up-pipeline btn btn-ghost btn-sm" data-pid="${p.id}" data-idx="${i}" title="Move up" style="font-size:0.9rem;padding:0 6px"><i class="ph ph-caret-up" aria-hidden="true"></i></button>
-          <button class="move-down-pipeline btn btn-ghost btn-sm" data-pid="${p.id}" data-idx="${i}" title="Move down" style="font-size:0.9rem;padding:0 6px"><i class="ph ph-caret-down" aria-hidden="true"></i></button>
+          <div class="pipeline-overflow-trigger overflow-menu-trigger">
+            <button class="pipeline-overflow-btn btn btn-ghost btn-icon" aria-label="More actions" aria-expanded="false"><i class="ph ph-dots-three-vertical" aria-hidden="true"></i></button>
+            <div class="overflow-menu">
+              <button class="overflow-menu-item move-up-pipeline" data-pid="${p.id}" data-idx="${i}"><i class="ph ph-caret-up" aria-hidden="true"></i> Move up</button>
+              <button class="overflow-menu-item move-down-pipeline" data-pid="${p.id}" data-idx="${i}"><i class="ph ph-caret-down" aria-hidden="true"></i> Move down</button>
+              <button class="overflow-menu-item edit-pipeline" data-pid="${p.id}"><i class="ph ph-pencil" aria-hidden="true"></i> Edit</button>
+              <button class="overflow-menu-item del-pipeline" data-pid="${p.id}"><i class="ph ph-trash" aria-hidden="true"></i> Delete</button>
+            </div>
+          </div>
           <span style="color:var(--text-muted);font-size:0.75rem;display:flex;align-items:center">${p.sort_order != null ? p.sort_order : '-'}</span>
           <button class="trigger-pipeline btn btn-primary btn-sm" data-pid="${p.id}"><i class="ph ph-play" aria-hidden="true"></i> Run</button>
           <button class="dryrun-pipeline btn btn-secondary btn-sm" data-pid="${p.id}"><i class="ph ph-play-circle" aria-hidden="true"></i> Dry Run</button>
-          <button class="edit-pipeline btn btn-ghost btn-sm" data-pid="${p.id}">Edit</button>
-          <button class="del-pipeline btn btn-danger btn-sm" data-pid="${p.id}">Del</button>
         </div>
       </div>`;
     }).join('');
@@ -2129,7 +2232,7 @@ document.getElementById('pipelineSave')?.addEventListener('click', async functio
 
 renderers.configRuntime = async function() {
   const container = document.getElementById('configRuntime');
-  container.innerHTML = '<p class="loading">Loading...</p>';
+  container.innerHTML = '<div class="skeleton-text"></div><div class="skeleton-text"></div><div class="skeleton-text"></div><div class="skeleton-text"></div>';
   try {
     const cfg = await api('/api/config');
     const fields = [
@@ -2174,7 +2277,7 @@ renderers.configRuntime = async function() {
 
 renderers.configCredentials = async function() {
   const container = document.getElementById('configCredentials');
-  container.innerHTML = '<p class="loading">Loading...</p>';
+  container.innerHTML = '<div class="skeleton-text"></div><div class="skeleton-text"></div>';
   try {
     const cfg = await api('/api/config');
     container.innerHTML =
@@ -2196,7 +2299,7 @@ renderers.configCredentials = async function() {
 
 renderers.ignorelists = async function() {
   const container = document.getElementById('ignorelistsPage');
-  container.innerHTML = '<p class="loading">Loading...</p>';
+  container.innerHTML = '<div class="skeleton-text"></div><div class="skeleton-text"></div><div class="skeleton-text"></div>';
   try {
     const lists = await api('/api/ignore-lists');
     if (!lists || lists.length === 0) {
@@ -2401,6 +2504,25 @@ async function startAuthFlow() {
       '<p class="error-state">Failed: ' + escapeHtml(e.message) + '</p>';
   }
 }
+
+// Overflow menu toggle — event delegation on document
+document.addEventListener('click', function(e) {
+  const overflowBtn = e.target.closest('.pipeline-overflow-btn');
+  if (overflowBtn) {
+    e.stopPropagation();
+    const overflowTrigger = overflowBtn.closest('.pipeline-overflow-trigger');
+    const menu = overflowTrigger.querySelector('.overflow-menu');
+    const isOpen = menu.classList.toggle('open');
+    overflowBtn.setAttribute('aria-expanded', isOpen);
+    return;
+  }
+  // Close all open overflow menus on outside click
+  document.querySelectorAll('.overflow-menu.open').forEach(menu => {
+    menu.classList.remove('open');
+    const btn = menu.closest('.overflow-menu-trigger')?.querySelector('[aria-expanded]');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  });
+});
 
 /* ─── Neon Terminal interactive JS ─── */
 const PAGES_WITH_FADE = ['dashboard', 'subscriptions', 'pipelines', 'runs', 'search-results', 'settings'];
