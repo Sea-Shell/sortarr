@@ -2419,7 +2419,7 @@ function switchSettingsTab(tab) {
     activeTab.classList.add('active');
     activeTab.setAttribute('aria-selected', 'true');
   }
-  const activePane = document.getElementById('settings' + tab.charAt(0).toUpperCase() + tab.slice(1));
+  const activePane = activeTab ? document.getElementById(activeTab.getAttribute('aria-controls')) : null;
   if (activePane) activePane.classList.add('active');
 }
 
