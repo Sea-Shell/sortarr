@@ -1,8 +1,10 @@
 import logging
+from datetime import datetime, timezone
 from typing import List
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from sortarr.api.deps import get_state, require_youtube
+from sortarr.db.repository import videos as v
 
 log = logging.getLogger("sortarr.api.subscriptions")
 router = APIRouter()
@@ -34,6 +36,18 @@ def _get_added_count(con, sub_id: str) -> int:
 @router.get("/subscriptions", response_model=List[SubscriptionResponse])
 async def list_subscriptions(request: Request):
     state = get_state(request)
+
+    # Try to refresh subscriptions from YouTube API first
+    if state.youtube:
+        try:
+            subs = state.youtube.get_subscriptions()
+            now = datetime.now(timezone.utc).isoformat()
+            for sub in subs:
+                v.insert_subscription(state.db_con, sub.id, sub.title, now)
+        except Exception as e:
+            log.warning("Failed to sync subscriptions from YouTube, using cache: %s", e)
+
+    # Serve from DB (always current if sync worked, cached if not)
     rows = state.db_con.execute(
         "SELECT id, title, COALESCE(added_to_playlist_count, 0) as added_to_playlist_count "
         "FROM subscription ORDER BY title ASC"
