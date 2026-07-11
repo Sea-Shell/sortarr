@@ -12,7 +12,7 @@ from sortarr.api.models import (
     IgnoreListEntryCreate,
     PlaylistResponse,
 )
-from sortarr.api.deps import get_state, require_youtube
+from sortarr.api.deps import get_state
 from sortarr.db.repository import (
     pipeline as pl,
     ignore_lists as il,
@@ -237,21 +237,38 @@ async def remove_ignore_list_entry(list_id: str, entry_id: str, request: Request
 
 @router.get("/playlists", response_model=List[PlaylistResponse])
 async def list_playlists(request: Request):
-    """Return user's YouTube playlists for pipeline config."""
+    """Return user's YouTube playlists for pipeline config.
+    
+    Tries YouTube API first; falls back to DB cache on failure.
+    Returns an empty list (200) if no playlists are available.
+    """
     state = get_state(request)
-    youtube = require_youtube(state)
-    channel = v.get_channel(state.db_con)
-    channel_id = None
-    if channel:
-        channel_id = channel["id"]
-    else:
-        channels = youtube.get_channel_id()
-        if channels:
-            channel_id = channels[0].id
-    if not channel_id:
-        raise HTTPException(status_code=404, detail="No channel found")
-    playlists = youtube.get_user_playlists(channel_id)
-    return [PlaylistResponse(id=p.id, title=p.title) for p in playlists]
+
+    # Try YouTube API first (live data)
+    if hasattr(state, "youtube") and state.youtube:
+        try:
+            channel = v.get_channel(state.db_con)
+            channel_id = None
+            if channel:
+                channel_id = channel["id"]
+            else:
+                channels = state.youtube.get_channel_id()
+                if channels:
+                    channel_id = channels[0].id
+            if channel_id:
+                playlists = state.youtube.get_user_playlists(channel_id)
+                return [PlaylistResponse(id=p.id, title=p.title) for p in playlists]
+        except Exception as e:
+            log.warning(
+                "Failed to fetch playlists from YouTube, falling back to DB: %s", e
+            )
+
+    # Fall back to DB cache
+    db_playlists = v.get_playlists(state.db_con)
+    if db_playlists:
+        return [PlaylistResponse(id=p["id"], title=p["title"]) for p in db_playlists]
+
+    return []
 
 
 # ── Video Lookup ───────────────────────────────────────────────────────

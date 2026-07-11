@@ -408,13 +408,13 @@ def test_overlay_warns_on_invalid_key(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_playlists_endpoint_503_no_youtube(app: FastAPI):
-    """GET /api/playlists returns 503 when YouTube not authenticated."""
+async def test_playlists_endpoint_fallback_no_youtube(app: FastAPI):
+    """GET /api/playlists returns 200 with empty list when YouTube not authenticated."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         resp = await c.get("/api/playlists")
-    assert resp.status_code == 503
-    assert "authenticate" in resp.json()["detail"].lower()
+    assert resp.status_code == 200
+    assert resp.json() == []
 
 
 @pytest.mark.asyncio

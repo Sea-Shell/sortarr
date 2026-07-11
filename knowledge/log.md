@@ -4,7 +4,7 @@ title: Sortarr Knowledge Bundle — Change Log
 description: Chronological record of changes to the knowledge/ OKF bundle. Append one line per change; newest at top.
 resource: https://github.com/Sea-Shell/sortarr
 tags: [sortarr, log, okf, changelog]
-timestamp: 2026-06-24T10:00:00Z
+timestamp: 2026-07-11T00:00:00Z
 ---
 
 # Change Log
@@ -17,3 +17,4 @@ Format: `- YYYY-MM-DD — <doc(s) touched> — <what changed and why>`
 - 2026-07-08 — index.md, DESIGN.md — added DESIGN.md with responsive design system tokens, fluid typography, component inventory, and mobile-first layout rules. Direction B (Fluid Grid) confirmed by user.
 - 2026-07-08 — pipeline.md — documented in-memory dedup by video_id in _collect_activities() to avoid redundant API calls.
 - 2026-07-09 — api.md — updated subscriptions endpoint to DB-backed; added pipeline/runs/search route to route table; fixed route ordering note (literal paths before dynamic params).
+- 2026-07-11 — api.md — added playlists route with YouTube API + DB fallback to route table.

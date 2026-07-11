@@ -13,6 +13,7 @@ __all__ = [
     "get_channel",
     "insert_playlist",
     "get_playlist",
+    "get_playlists",
     "insert_subscription",
     "get_subscription_timestamp",
     "get_last_run",
@@ -108,6 +109,11 @@ def get_playlist(con: sqlite3.Connection) -> Optional[dict]:
     if row:
         return {"id": row["id"], "title": row["title"]}
     return None
+
+
+def get_playlists(con: sqlite3.Connection) -> list[dict]:
+    cursor = con.execute("SELECT id, title FROM playlist ORDER BY title")
+    return [dict(row) for row in cursor.fetchall()]
 
 
 def insert_subscription(
