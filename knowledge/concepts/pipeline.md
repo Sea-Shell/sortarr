@@ -4,7 +4,7 @@ title: Sortarr Pipeline Orchestrator
 description: The two-phase PipelineOrchestrator that collects subscription activity then routes videos into playlists per pipeline, with skip rules.
 resource: https://github.com/Sea-Shell/sortarr/blob/main/src/sortarr/core/pipeline.py
 tags: [sortarr, pipeline, routing, core]
-timestamp: 2026-07-08T12:00:00Z
+timestamp: 2026-07-12T00:00:00Z
 ---
 
 # Overview
@@ -15,6 +15,14 @@ the user's `Channel`/`Playlist`, the list of `PipelineConfig`s, resolved ignore
 lists, a default playlist, and an optional `dry_run` flag and `on_progress`
 callback. Entry point is `_run()`, returning a `PipelineSummary`.
 
+# Subscription Sync
+
+After fetching subscriptions from the YouTube API and before Phase 1, the
+orchestrator persists every subscription to the `subscription` DB table via
+`v.insert_subscription()` (which uses `INSERT OR REPLACE`). This keeps the
+DB-backed subscriptions endpoint in sync with the user's actual YouTube
+subscriptions on every pipeline run.
+
 # Phase 1 — Data Collection
 
 `_collect_activities(subscriptions)` fetches activity for **every** subscription
@@ -24,13 +32,15 @@ the [`videos` cache table](/knowledge/concepts/database.md). Returns
 
 The lookback (`published_after`) is computed by `_compute_published_after`:
 
-- use `settings.published_after` if set, else
-- `now - reprocess_days` if `reprocess_days > 0`, else
-- `now - 52 weeks`.
+1. use `settings.published_after` if set, else
+2. compute a **maximum window** (`now - reprocess_days`, or `now - 52 weeks`).
+3. narrow it with per-subscription tracking: `max(max_window, min_tracking_ts)` —
+   the **later** (more recent) of the two wins, fetching only unseen activity.
 
-> Deliberately does **not** use per-subscription tracking here, to avoid
-> prematurely narrowing the window when multiple pipelines share a subscription.
-> The per-pipeline freshness check (Phase 2.2) handles reprocessing instead.
+`get_min_tracking_for_subscription()` returns the earliest `last_processed`
+across **all** pipelines for that subscription. Using `max()` on ISO8601 strings
+ensures no pipeline gets a window wider than `reprocess_days` (the ceiling),
+while any subscription with existing tracking gets a tighter fetch window.
 
 The in-memory list (`activity_objects`) is **deduplicated by `video_id`** before
 being returned — if the YouTube API returns the same video as both an `upload`

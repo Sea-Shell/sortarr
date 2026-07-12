@@ -109,21 +109,35 @@ class PipelineOrchestrator:
     def _compute_published_after(self, sub) -> str:
         """Compute the earliest time we need data for this subscription
         in Phase 1 data collection.  Uses settings.published_after if set,
-        otherwise falls back to reprocess_days or 52 weeks.
+        otherwise falls back to reprocess_days, using per-subscription
+        tracking data to narrow the window when available.
 
-        NOTE: does NOT use per-subscription tracking (get_min_tracking_for_subscription)
-        because that can be pipeline-specific and prematurely narrow the lookback
-        window when multiple pipelines process the same subscription.
-        The per-pipeline freshness check (checkpoint 2.2) handles the reprocess
-        window separately."""
+        Window logic: max(reprocess_days_cutoff, min_tracking_timestamp)
+        — the MORE RECENT of the two wins, narrowing the fetch to only
+        what hasn't been seen before, but never wider than reprocess_days.
+        """
         if self.settings.published_after:
             return self.settings.published_after
+
+        # Maximum lookback ceiling
         if self.settings.reprocess_days > 0:
-            return (
+            max_window = (
                 datetime.now(timezone.utc)
                 - timedelta(days=self.settings.reprocess_days)
             ).isoformat()
-        return (datetime.now(timezone.utc) - timedelta(weeks=52)).isoformat()
+        else:
+            max_window = (
+                datetime.now(timezone.utc) - timedelta(weeks=52)
+            ).isoformat()
+
+        # Try to narrow window using per-subscription tracking
+        # (earliest last_processed across all pipelines)
+        min_ts = pl.get_min_tracking_for_subscription(self.db_con, sub.id)
+        if min_ts:
+            # Use the later (more recent) of the two to narrow the window
+            return max(max_window, min_ts)
+
+        return max_window
 
     # ── Phase 2: Pipeline Processing ──────────────────────────────
 
@@ -140,6 +154,10 @@ class PipelineOrchestrator:
             summary.error_message = str(e)
             summary.errors = 1
             return summary
+
+        # Sync subscriptions to DB before any processing
+        for sub in subscriptions:
+            v.insert_subscription(self.db_con, sub.id, sub.title, now_iso)
 
         # Phase 1: Collect all activities into cache
         activity_cache = self._collect_activities(subscriptions)

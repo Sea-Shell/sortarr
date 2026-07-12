@@ -263,12 +263,32 @@ async def list_playlists(request: Request):
                 "Failed to fetch playlists from YouTube, falling back to DB: %s", e
             )
 
-    # Fall back to DB cache
-    db_playlists = v.get_playlists(state.db_con)
-    if db_playlists:
-        return [PlaylistResponse(id=p["id"], title=p["title"]) for p in db_playlists]
+    # Fall back to DB cache — merge playlist table + distinct pipelines
+    seen: set[str] = set()
+    result: list[PlaylistResponse] = []
 
-    return []
+    for p in v.get_playlists(state.db_con):
+        if p["id"] not in seen:
+            seen.add(p["id"])
+            result.append(PlaylistResponse(id=p["id"], title=p["title"]))
+
+    # Pull distinct destination playlists from pipelines
+    cursor = state.db_con.execute(
+        "SELECT DISTINCT destination_playlist_id, destination_playlist_title "
+        "FROM pipelines "
+        "WHERE destination_playlist_id IS NOT NULL AND destination_playlist_title IS NOT NULL "
+        "ORDER BY destination_playlist_title"
+    )
+    for row in cursor.fetchall():
+        pid = row["destination_playlist_id"]
+        if pid not in seen:
+            seen.add(pid)
+            result.append(PlaylistResponse(
+                id=pid,
+                title=row["destination_playlist_title"],
+            ))
+
+    return result
 
 
 # ── Video Lookup ───────────────────────────────────────────────────────
