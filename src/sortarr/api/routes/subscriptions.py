@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import List
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
-from sortarr.api.deps import get_state, require_youtube
+from sortarr.api.deps import get_state
 from sortarr.db.repository import videos as v
 
 log = logging.getLogger("sortarr.api.subscriptions")
@@ -68,18 +68,42 @@ async def list_subscriptions(request: Request):
 )
 async def get_subscription_activity(channel_id: str, request: Request):
     state = get_state(request)
-    youtube = require_youtube(state)
-    try:
-        activities = youtube.get_subscription_activity(channel_id)
-    except Exception as e:
-        log.error("Failed to get activity for channel %s: %s", channel_id, e)
-        raise HTTPException(status_code=502, detail=str(e))
-    return [
-        ActivityResponse(
-            video_id=a.video_id,
-            title=a.title,
-            published_at=a.published_at,
-            video_type=a.video_type,
-        )
-        for a in activities
-    ]
+
+    # Try YouTube API first if available
+    if state.youtube:
+        try:
+            activities = state.youtube.get_subscription_activity(channel_id)
+            return [
+                ActivityResponse(
+                    video_id=a.video_id,
+                    title=a.title,
+                    published_at=a.published_at,
+                    video_type=a.video_type,
+                )
+                for a in activities
+            ]
+        except Exception as e:
+            log.warning(
+                "YouTube activity fetch failed for %s, falling back to cache: %s",
+                channel_id,
+                e,
+            )
+
+    # Fall back to activity_cache
+    cached = v.get_cached_activities(state.db_con, channel_id)
+    if cached:
+        return [
+            ActivityResponse(
+                video_id=row["video_id"],
+                title=row["title"],
+                published_at=row["published_at"],
+                video_type=row["video_type"] or "",
+            )
+            for row in cached
+        ]
+
+    # No cache either
+    raise HTTPException(
+        status_code=503,
+        detail=f"No cached activity for channel {channel_id} and YouTube API is unavailable",
+    )

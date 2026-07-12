@@ -1768,14 +1768,17 @@ renderers.subscriptions = async function() {
 };
 
 async function viewSubActivity(channelId, title) {
-  const data = await api(`/api/subscriptions/${channelId}/activity`);
-  if (!data || data.length === 0) {
-    showToast('No activity for ' + title, 'warning');
-    return;
+  try {
+    const data = await api(`/api/subscriptions/${channelId}/activity`);
+    if (!data || data.length === 0) {
+      showToast('No activity for ' + title, 'warning');
+      return;
+    }
+    const recent = data.slice(0, 5);
+    showToast(recent.map(a => a.title).join(', ') + (data.length > 5 ? '...' : ''), 'info');
+  } catch (e) {
+    showToast('Failed to load activity for ' + title + ': ' + (e.message || e), 'error');
   }
-  // Simple inline display in a toast-like message
-  const recent = data.slice(0, 5);
-  showToast(recent.map(a => a.title).join(', ') + (data.length > 5 ? '...' : ''), 'info');
 }
 
 async function addSubscription() {
