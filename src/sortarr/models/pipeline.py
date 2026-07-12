@@ -1,100 +1,173 @@
-from dataclasses import dataclass, field
-from typing import Optional
+"""sortarr.models.pipeline — pipeline and configuration models."""
+
+from __future__ import annotations
+
+import uuid
+from enum import Enum
+
+from pydantic import BaseModel, Field
 
 
-@dataclass
-class FilterResult:
+class FilterStage(str, Enum):
+    """Classification of filter stages in the pipeline chain."""
+
+    CHEAP = "cheap"
+    DURATION = "duration"
+
+
+class FilterResult(BaseModel):
+    """Result of a single filter evaluating an activity."""
+
+    filter_stage: FilterStage
+    filter_name: str
     passed: bool
-    reason: str = ""
-    skipped_by: str = ""
-    matched_video_id: str = ""
-    matched_title: str = ""
-    match_type: str = ""  # "exact", "title_similarity", etc.
+    reason: str | None = None
 
 
-@dataclass
-class RouteResult:
-    playlist_id: str
-    playlist_title: str
-    rule_name: str = "default"
+class PipelineConfig(BaseModel):
+    """Full pipeline configuration as stored in DB / returned to API."""
 
-
-@dataclass
-class VideoResult:
-    video_id: str
-    title: str
-    subscription_title: str
-    subscription_id: str
-    pipeline_id: str = ""
-    pipeline_name: str = ""
-    filter_result: Optional[FilterResult] = None
-    route_result: Optional[RouteResult] = None
-    added: bool = False
-    error: Optional[str] = None
-
-
-@dataclass
-class PipelineSummary:
-    started_at: str
-    finished_at: Optional[str] = None
-    status: str = "running"
-    subscriptions_processed: int = 0
-    subscriptions_skipped: int = 0
-    videos_added: int = 0
-    videos_skipped: int = 0
-    errors: int = 0
-    error_message: str = ""
-    trigger: str = "scheduled"
-    video_results: list[VideoResult] = field(default_factory=list)
-    subscription_skips: list[dict] = field(default_factory=list)
-    pipelines_invoked: int = 0
-    pipelines_with_errors: int = 0
-
-
-@dataclass
-class PipelineConfig:
-    id: str
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     enabled: bool = True
+    playlist_id: str | None = None
+    order: int = 0
+
+    # Filter config
+    subscription_scope: str = "all"  # "all" or "selected"
+    duration_min_seconds: int | None = None
+    duration_max_seconds: int | None = None
+    selector_mode: str = "AND"  # "AND" or "OR"
+
+
+class PipelineCreate(BaseModel):
+    """Request body for creating a new pipeline."""
+
+    name: str
+    playlist_id: str | None = None
+    subscription_scope: str = "all"
+    duration_min_seconds: int | None = None
+    duration_max_seconds: int | None = None
     selector_mode: str = "AND"
-    duration_min_seconds: int = 0
-    duration_max_seconds: int = 0
-    check_db_exists: bool = False
-    check_title_similarity: bool = False
-    compare_distance: int = 80
-    subscription_scope: str = "all"  # "all" | "selected"
-    destination_playlist_id: str = ""
-    destination_playlist_title: str = ""
-    sort_order: int = 0
-    created_at: str = ""
-    updated_at: str = ""
+    ignore_list_ids: list[str] = Field(default_factory=list)
+    selector_ids: list[str] = Field(default_factory=list)
+    subscription_ids: list[str] = Field(default_factory=list)
 
 
-@dataclass
-class IgnoreList:
+class PipelineUpdate(BaseModel):
+    """Request body for partial pipeline update — all fields optional."""
+
+    name: str | None = None
+    enabled: bool | None = None
+    playlist_id: str | None = None
+    order: int | None = None
+    subscription_scope: str | None = None
+    duration_min_seconds: int | None = None
+    duration_max_seconds: int | None = None
+    selector_mode: str | None = None
+
+
+class PipelineResponse(BaseModel):
+    """API response for a pipeline."""
+
     id: str
     name: str
-    list_type: str  # "word" | "video" | "subscription"
-    created_at: str = ""
-    entries: list[str] = field(default_factory=list)
+    enabled: bool
+    order: int
+    playlist_id: str | None
+    subscription_scope: str
+    duration_min_seconds: int | None
+    duration_max_seconds: int | None
+    selector_mode: str
+    ignore_list_ids: list[str] = Field(default_factory=list)
+    selector_ids: list[str] = Field(default_factory=list)
+    subscription_ids: list[str] = Field(default_factory=list)
 
 
-@dataclass
-class IgnoreListEntry:
+class RunSummary(BaseModel):
+    """Pipeline run summary as stored internally."""
+
+    id: str | None = None
+    status: str = "running"  # running, completed, failed, completed_quota_blocked
+    trigger: str = "manual"  # manual, scheduled
+    started_at: str | None = None
+    completed_at: str | None = None
+    subscriptions_fetched: int = 0
+    activities_collected: int = 0
+    videos_enriched: int = 0
+    videos_inserted: int = 0
+    videos_skipped: int = 0
+    quota_used: int = 0
+    error_message: str | None = None
+
+
+class RunSummaryResponse(BaseModel):
+    """API response for a pipeline run summary."""
+
     id: str
-    ignore_list_id: str
-    value: str
-    created_at: str = ""
+    status: str
+    trigger: str
+    started_at: str | None
+    completed_at: str | None
+    subscriptions_fetched: int
+    activities_collected: int
+    videos_enriched: int
+    videos_inserted: int
+    videos_skipped: int
+    quota_used: int
+    error_message: str | None
 
 
-@dataclass
-class PipelineSelector:
-    id: str = ""
-    pipeline_id: str = ""
-    field: str = "title"  # "title" | "channel_title" | "description"
-    operator: str = "contains"  # "contains" | "regex" | "equals"
-    pattern: str = ""
-    combine_operator: str = (
-        "AND"  # "AND" | "OR" — how to combine with previous selector
-    )
-    created_at: str = ""
+class RunDecisionResponse(BaseModel):
+    """API response for a single run decision (per video)."""
+
+    run_id: str
+    pipeline_id: str
+    video_id: str
+    action: str  # "inserted" or "skipped"
+    filter_stage: str | None  # "cheap", "duration", or null
+    filter_name: str | None  # which filter skipped it
+    reason: str | None
+
+
+class PreviewRequest(BaseModel):
+    """Request body for preview endpoints."""
+
+    pipeline_id: str | None = None  # None = all enabled pipelines
+
+
+class MockActivity(BaseModel):
+    """A synthetic activity used in mock preview to exercise filter rules."""
+
+    video_id: str
+    title: str
+    description: str = ""
+    channel_id: str
+    channel_title: str
+    subscription_id: str
+    published_at: str
+    activity_type: str = "upload"
+    duration_seconds: int | None = None
+    label: str = ""  # descriptive label for what this mock tests
+
+
+class MockPreviewResponse(BaseModel):
+    """API response for mock preview of a single pipeline."""
+
+    pipeline_id: str
+    pipeline_name: str
+    activities: list[MockActivity]
+    results: list[dict] = []  # filter result per activity
+    quota_cost: int = 0
+
+
+class CachePreviewResponse(BaseModel):
+    """API response for cache preview of a single pipeline."""
+
+    pipeline_id: str
+    pipeline_name: str
+    total_activities: int
+    activities_after_cheap: int
+    activities_after_duration: int
+    duration_unknown_count: int = 0
+    quota_cost: int = 0
