@@ -9,10 +9,21 @@ from sortarr.core.youtube import (
     reset_quota,
     _increment_quota,
 )
+from sortarr.db.connection import init_db, close_db
+from sortarr.db.migrations import init_db as apply_schema
 
 
 @pytest.fixture(autouse=True)
-def reset_quota_before_each():
+def db():
+    """Initialize an in-memory database for testing."""
+    conn = init_db(":memory:")
+    apply_schema(conn)
+    yield conn
+    close_db()
+
+
+@pytest.fixture(autouse=True)
+def reset_quota_before_each(db):
     """Reset quota counter before each test."""
     reset_quota()
     yield

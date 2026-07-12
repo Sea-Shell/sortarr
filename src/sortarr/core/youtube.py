@@ -6,12 +6,16 @@ All API calls go through this client.
 """
 
 import logging
+import threading
 from typing import Any
 
 from google.auth.transport.requests import AuthorizedSession
 from googleapiclient.discovery import build
 
 log = logging.getLogger("sortarr.core.youtube")
+
+# Lock for thread-safe quota operations
+_quota_lock = threading.Lock()
 
 
 def get_quota_used() -> int:
@@ -32,11 +36,22 @@ def reset_quota() -> None:
 
 def _increment_quota(cost: int) -> None:
     """Increment quota counter atomically in database."""
-    from sortarr.db.repository import config
+    from sortarr.db.connection import get_connection
 
-    value = config.get_config_value("quota_used", "0")
-    current = int(value) if value else 0
-    config.set_config("quota_used", str(current + cost))
+    with _quota_lock:
+        conn = get_connection()
+        # Initialize if not exists
+        conn.execute("""
+            INSERT INTO app_config (key, value) VALUES ('quota_used', '0')
+            ON CONFLICT(key) DO NOTHING
+        """)
+        # Atomic increment
+        conn.execute("""
+            UPDATE app_config 
+            SET value = CAST(CAST(value AS INTEGER) + ? AS TEXT)
+            WHERE key = 'quota_used'
+        """, (cost,))
+        conn.commit()
 
 
 class YouTubeAPIClient:

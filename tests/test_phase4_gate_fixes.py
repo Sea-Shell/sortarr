@@ -1,8 +1,7 @@
 """Tests for Phase 4 gate issue fixes (C1-C3, M1-M5)."""
 
-import sqlite3
 import threading
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
@@ -118,6 +117,50 @@ def test_quota_persists_across_instances(db):
     # Verify it persists (simulated by re-reading from DB)
     quota = get_quota_used()
     assert quota == 150
+
+
+# C4: Quota counter atomicity
+def test_quota_increment_is_atomic(db):
+    """Test that quota counter increments are atomic under concurrent access."""
+    from sortarr.core.youtube import _increment_quota
+
+    # Reset quota
+    reset_quota()
+    assert get_quota_used() == 0
+
+    # Simulate concurrent increments from multiple threads
+    num_threads = 10
+    increments_per_thread = 10
+    increment_value = 5
+    
+    errors = []
+    
+    def increment_quota_thread():
+        """Thread worker that increments quota multiple times."""
+        try:
+            for _ in range(increments_per_thread):
+                _increment_quota(increment_value)
+        except Exception as e:
+            errors.append(e)
+    
+    # Launch threads
+    threads = [threading.Thread(target=increment_quota_thread) for _ in range(num_threads)]
+    for t in threads:
+        t.start()
+    
+    # Wait for all threads to complete
+    for t in threads:
+        t.join()
+    
+    # Verify no errors occurred
+    assert len(errors) == 0, f"Errors occurred: {errors}"
+    
+    # Verify final quota is correct (all increments should be counted)
+    expected_quota = num_threads * increments_per_thread * increment_value
+    actual_quota = get_quota_used()
+    assert actual_quota == expected_quota, (
+        f"Lost updates detected: expected {expected_quota}, got {actual_quota}"
+    )
 
 
 # M1: Enricher swallows exceptions
