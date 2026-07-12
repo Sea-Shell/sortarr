@@ -1,10 +1,10 @@
 ---
 type: Datastore
 title: Sortarr Database
-description: SQLite persistence — connection handling with WAL mode and foreign keys, auto-run migrations, the table schema, and the repository layer that wraps all queries.
+description: SQLite persistence — connection handling, WAL mode, foreign keys, the v2 table schema, and the repository layer that wraps all queries.
 resource: https://github.com/Sea-Shell/sortarr/tree/main/src/sortarr/db
 tags: [sortarr, database, sqlite, persistence, wal, foreign-keys]
-timestamp: 2026-07-12T12:00:00Z
+timestamp: 2026-07-12T14:00:00Z
 ---
 
 # Layout
@@ -12,74 +12,57 @@ timestamp: 2026-07-12T12:00:00Z
 ```
 src/sortarr/db/
 ├── connection.py   # SQLite connection management (WAL mode, foreign keys)
-├── migrations.py   # schema DDL, auto-run on startup
+├── migrations.py   # schema DDL (V3_SCHEMA_SQL), init_db()
 └── repository/
-    ├── config.py        # runtime config key/values
-    ├── ignore_lists.py  # ignore lists + entries  → see filters.md
-    ├── pipeline.py      # pipelines, selectors, tracking, list attachments
-    ├── pipeline_runs.py # run history + decisions
-    └── videos.py        # activity cache + routed-video records
+    ├── config.py        # app_config key-value store
+    ├── pipelines.py     # pipelines, selectors, ignore_lists, subscriptions, tracking
+    ├── activities.py    # activity_cache (persistent)
+    ├── videos.py        # inserted videos (audit trail)
+    ├── runs.py          # pipeline_runs + run_decisions
+    └── subscriptions.py # subscriptions table
 ```
-
-# Connection lifecycle
-
-`connection.py` manages a single module-level `sqlite3.Connection` with
-three functions called from the [FastAPI lifespan](/knowledge/concepts/api.md):
-
-| Function       | When called        | What it does                                        |
-| -------------- | ------------------ | --------------------------------------------------- |
-| `init_db(path)` | App startup        | Opens connection, sets WAL mode + foreign keys + busy timeout |
-| `get_connection()` | Any time       | Returns the connection; raises `RuntimeError` if not initialized |
-| `close_db()`    | App shutdown       | Closes the connection cleanly                       |
-
-A `connection_ctx()` context manager provides transactional semantics:
-commit on success, rollback on exception.
-
-# Pragmas
-
-| Pragma               | Value  | Why                                                          |
-| -------------------- | ------ | ------------------------------------------------------------ |
-| `journal_mode`       | `WAL`  | Concurrent readers during writes; better throughput           |
-| `foreign_keys`       | `ON`   | Enforces referential integrity (off by default in sqlite3)   |
-| `busy_timeout`       | `5000` | Wait up to 5 seconds on lock contention before failing       |
-| `row_factory`        | `sqlite3.Row` | Dict-like column access (`row["title"]`) instead of positional |
-
-WAL mode requires a file-backed database — `:memory:` databases always use the
-`memory` journal and silently ignore the WAL pragma.
-
-The DB path is `SORTARR_DATABASE_FILE` (default `sortarr.db`) — see
-[runtime config](/knowledge/concepts/runtime-config.md).
 
 # Migrations
 
-`migrations.py` defines the schema as SQL (`V1_SCHEMA_SQL`, …) and runs it on
-startup; there is **no separate migrate command**. Tables use
-`CREATE TABLE IF NOT EXISTS`, so startup is idempotent.
+`migrations.py` defines the schema as a single SQL string (`V3_SCHEMA_SQL`)
+and exposes `init_db(conn)` which runs it via `executescript`. There is no
+separate migrate command — startup is idempotent (`CREATE TABLE IF NOT EXISTS`).
+`init_db` also enables `PRAGMA foreign_keys = ON` so that `ON DELETE CASCADE`
+constraints fire (SQLite disables FK enforcement by default).
 
-# Schema (V1 core tables)
+# Schema — V2 (14 tables)
 
-| Table           | Purpose                                                                                                                                             |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `videos`        | `videoId` PK, title, `subscriptionId`, `playlistId`, `duration_seconds`, `route_rule` — activity cache + routed records                             |
-| `channel`       | The authenticated user's channel (`id`, `title`)                                                                                                    |
-| `playlist`      | Known playlists (`id`, `title`)                                                                                                                     |
-| `subscription`  | Subscriptions (`id`, `title`, `timestamp`)                                                                                                          |
-| `last_run`      | Last run timestamp                                                                                                                                  |
-| `routing_rules` | Legacy rule rows: `priority`, `field`, `operator`, `pattern`, `destination_playlist_id`, `enabled`, `minimum_length`, `maximum_length`, `catch_all` |
-| `pipeline_runs` | Run history (see `pipeline_runs` repository)                                                                                                        |
+| Table | Purpose |
+|-------|---------|
+| `subscriptions` | YouTube subscriptions — `id` PK, `title`, `channel_id` |
+| `pipelines` | Pipeline configurations — `destination_playlist_id`, `selector_mode`, `subscription_scope`, `duration_min/max_seconds`, `sort_order` |
+| `ignore_lists` | Named ignore lists — `list_type` CHECK `('word', 'video', 'subscription')` |
+| `ignore_list_entries` | Entries in ignore lists — FK to `ignore_lists(id)` ON DELETE CASCADE |
+| `pipeline_ignore_lists` | Junction: pipeline ↔ ignore list (composite PK) |
+| `pipeline_selectors` | Selector rules per pipeline — `field`, `operator`, `pattern`, `combine_operator` |
+| `pipeline_subscriptions` | Junction: pipeline ↔ subscription (for `scope=selected`) |
+| `subscription_tracking` | Watermark per subscription — `last_fetched_at` |
+| `activity_cache` | Persistent activity cache — PK `(video_id, subscription_id)`, never cleared between runs |
+| `videos` | Audit trail of inserted videos — `pipeline_id`, `playlist_id` |
+| `pipeline_runs` | Run history — `status`, `trigger`, `mode`, counts, `quota_used` |
+| `run_decisions` | Per-video decisions from each run — FK to `pipeline_runs(id)` |
+| `app_config` | Key-value store for runtime configuration |
+| `oauth_credentials` | OAuth token storage — single row (`CHECK(id = 1)`) |
 
-The `pipelines` table has a `sort_order INTEGER NOT NULL DEFAULT 0` column
-(added in V9 migration). `get_pipelines()` orders by `sort_order ASC, name ASC`.
-`reorder_pipelines(con, pipeline_ids: list[str])` assigns sequential sort_order
-values (0, 1, 2, …) based on list position.
+## Indexes
 
-Pipelines, selectors, ignore lists, and pipeline↔subscription/ignore-list
-attachments are managed through the `pipeline` and `ignore_lists` repositories.
+| Index | Table / Columns |
+|-------|-----------------|
+| `idx_ile_list` | `ignore_list_entries(ignore_list_id)` |
+| `idx_ps_pipeline` | `pipeline_selectors(pipeline_id)` |
+| `idx_ac_published` | `activity_cache(published_at)` |
+| `idx_ac_subscription` | `activity_cache(subscription_id)` |
+| `idx_rd_run` | `run_decisions(run_id)` |
+| `idx_rd_video` | `run_decisions(video_id)` |
 
 # Repository pattern
 
 Handlers and the [pipeline](/knowledge/concepts/pipeline.md) never write SQL
-inline — they call functions in `repository/` (e.g. `videos.cache_activity`,
-`pipeline.get_pipeline_tracking`, `pipeline.get_pipeline_selectors`). The
-`Connection` is created once and shared through
-[`AppState`](/knowledge/concepts/api.md).
+inline — they call functions in `repository/` (e.g. `activities.upsert_activity`,
+`pipelines.get_pipeline_selectors`, `runs.create_run`). The `Connection` is
+created once and shared through [`AppState`](/knowledge/concepts/api.md).

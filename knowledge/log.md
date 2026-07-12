@@ -24,4 +24,5 @@ Format: `- YYYY-MM-DD — <doc(s) touched> — <what changed and why>`
 - 2026-07-12 — pipeline.md — documented restored per-subscription tracking narrowing in _compute_published_after (max() of reprocess_days ceiling and min_tracking_ts).
 - 2026-07-12 — api.md — activity endpoint now falls back to activity_cache when YouTube API is unavailable.
 - 2026-07-12 — architecture.md, index.md — v2 greenfield skeleton: deleted all v1 files, created new module layout with stubs. Added v1→v2 diff table and updated flow descriptions.
+- 2026-07-12 — database.md — rewrote for v2: replaced v1 schema (channel, playlist, routing_rules, etc.) with v2 schema (14 tables, 6 indexes, V3_SCHEMA_SQL). Added init_db() description and repository layout.
 - 2026-07-12 — database.md — added connection lifecycle (init_db/get_connection/close_db/connection_ctx), WAL mode, foreign keys, and pragma table.
