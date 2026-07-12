@@ -133,3 +133,37 @@ class OAuthManager:
             log.info("OAuth token refreshed")
 
         return AuthorizedSession(credentials)
+
+    def migrate_from_pickle(self, pickle_path: str = "credentials.pickle") -> bool:
+        """Migrate credentials from pickle file to database.
+        
+        Returns True if migration happened, False if no pickle found.
+        """
+        import pickle
+        from pathlib import Path
+        
+        pickle_file = Path(pickle_path)
+        if not pickle_file.exists():
+            return False
+        
+        # Check if DB already has credentials
+        if self.is_authenticated():
+            log.info("credentials already in database — skipping pickle migration")
+            return False
+        
+        # Load from pickle
+        try:
+            with open(pickle_file, "rb") as f:
+                credentials = pickle.load(f)
+            
+            # Save to DB
+            self.save_credentials(credentials)
+            log.warning(
+                "migrated OAuth credentials from %s to database (pickle file NOT deleted — remove manually)",
+                pickle_path
+            )
+            return True
+        except Exception as e:
+            log.error("failed to migrate credentials from pickle: %s", e)
+            return False
+
