@@ -280,3 +280,87 @@ def test_credentials_with_none_values(test_db: sqlite3.Connection, oauth_manager
     assert loaded.token == "test_token"
     assert loaded.refresh_token is None
 
+
+def test_migrate_from_pickle_success(test_db: sqlite3.Connection, oauth_manager: OAuthManager, tmp_path):
+    """Test successful migration from pickle file."""
+    import pickle
+    
+    # Create a pickle file with credentials
+    pickle_path = tmp_path / "credentials.pickle"
+    creds = Credentials(
+        token="pickled_token",
+        refresh_token="pickled_refresh",
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id="client123",
+        client_secret="secret456"
+    )
+    with open(pickle_path, "wb") as f:
+        pickle.dump(creds, f)
+    
+    # Migrate
+    result = oauth_manager.migrate_from_pickle(str(pickle_path))
+    assert result is True
+    
+    # Verify credentials are in DB
+    loaded = oauth_manager.get_credentials()
+    assert loaded is not None
+    assert loaded.token == "pickled_token"
+    assert loaded.refresh_token == "pickled_refresh"
+
+
+def test_migrate_from_pickle_no_file(test_db: sqlite3.Connection, oauth_manager: OAuthManager):
+    """Test migration returns False when pickle file doesn't exist."""
+    result = oauth_manager.migrate_from_pickle("nonexistent.pickle")
+    assert result is False
+    assert not oauth_manager.is_authenticated()
+
+
+def test_migrate_from_pickle_skip_if_authenticated(test_db: sqlite3.Connection, oauth_manager: OAuthManager, tmp_path):
+    """Test migration skips if DB already has credentials."""
+    import pickle
+    
+    # Save credentials to DB first
+    db_creds = Credentials(
+        token="db_token",
+        refresh_token="db_refresh",
+        token_uri="https://oauth2.googleapis.com/token"
+    )
+    oauth_manager.save_credentials(db_creds)
+    
+    # Create pickle file
+    pickle_path = tmp_path / "credentials.pickle"
+    pickle_creds = Credentials(
+        token="pickle_token",
+        refresh_token="pickle_refresh",
+        token_uri="https://oauth2.googleapis.com/token"
+    )
+    with open(pickle_path, "wb") as f:
+        pickle.dump(pickle_creds, f)
+    
+    # Attempt migration
+    result = oauth_manager.migrate_from_pickle(str(pickle_path))
+    assert result is False
+    
+    # Verify DB credentials unchanged
+    loaded = oauth_manager.get_credentials()
+    assert loaded is not None
+    assert loaded.token == "db_token"
+
+
+def test_migrate_from_pickle_corrupt_file(test_db: sqlite3.Connection, oauth_manager: OAuthManager, tmp_path, caplog):
+    """Test migration handles corrupt pickle file gracefully."""
+    import logging
+    
+    # Create corrupt pickle file
+    pickle_path = tmp_path / "corrupt.pickle"
+    with open(pickle_path, "wb") as f:
+        f.write(b"not a valid pickle")
+    
+    with caplog.at_level(logging.ERROR):
+        result = oauth_manager.migrate_from_pickle(str(pickle_path))
+    
+    assert result is False
+    assert "failed to migrate credentials" in caplog.text
+    assert not oauth_manager.is_authenticated()
+
+
