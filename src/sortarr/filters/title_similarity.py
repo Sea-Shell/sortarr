@@ -1,51 +1,105 @@
-import re
-from sortarr.models.pipeline import FilterResult
+"""sortarr.filters.title_similarity — title similarity filter.
+
+Rejects near-duplicate titles already in the DB using Levenshtein distance.
+"""
+
+import logging
+from typing import Any
+
+from sortarr.core.filters import register_filter
+from sortarr.models.pipeline import FilterResult, FilterStage, PipelineConfig
+
+log = logging.getLogger("sortarr.filters.title_similarity")
 
 
-def _normalize(title: str) -> str:
-    return re.sub(r"[^a-zA-Z0-9\-_]+", " ", title).lower()
+def _normalize(text: str) -> str:
+    """Lowercase and collapse non-alphanumeric runs to single spaces."""
+    import re
+    return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
 
 
-def _fuzz_ratio(s1: str, s2: str) -> int:
-    if not s1 or not s2:
-        return 0
-    shorter, longer = (s1, s2) if len(s1) <= len(s2) else (s2, s1)
-    m = len(shorter)
-    n = len(longer)
-    if m == 0:
-        return 0
-    costs = list(range(m + 1))
-    for i in range(1, n + 1):
-        prev = costs[0]
-        costs[0] = i
-        for j in range(1, m + 1):
-            temp = costs[j]
-            costs[j] = min(
-                costs[j] + 1,
-                costs[j - 1] + 1,
-                prev + (0 if shorter[j - 1] == longer[i - 1] else 1),
+def _levenshtein(a: str, b: str) -> int:
+    """Compute Levenshtein edit distance between two strings."""
+    if not a:
+        return len(b)
+    if not b:
+        return len(a)
+
+    # Optimise: only need two rows at a time
+    prev = list(range(len(b) + 1))
+    curr = [0] * (len(b) + 1)
+
+    for i, ca in enumerate(a):
+        curr[0] = i + 1
+        for j, cb in enumerate(b):
+            cost = 0 if ca == cb else 1
+            curr[j + 1] = min(
+                prev[j + 1] + 1,      # deletion
+                curr[j] + 1,           # insertion
+                prev[j] + cost,        # substitution
             )
-            prev = temp
-    max_len = max(n, m)
+        prev, curr = curr, prev
+
+    return prev[len(b)]
+
+
+def _fuzz_ratio(a: str, b: str) -> int:
+    """Similarity ratio (0–100) between two strings using Levenshtein."""
+    if not a or not b:
+        return 0
+    na, nb = _normalize(a), _normalize(b)
+    if not na or not nb:
+        return 0
+    max_len = max(len(na), len(nb))
     if max_len == 0:
-        return 100
-    return int((1 - costs[m] / max_len) * 100)
+        return 0
+    dist = _levenshtein(na, nb)
+    return int((1 - dist / max_len) * 100)
 
 
-def title_similarity(
-    new_title: str, existing_titles: list[tuple[str, str]], threshold: int
-) -> FilterResult:
-    normalized_new = _normalize(new_title)
-    for video_id, existing_title in existing_titles:
-        normalized_existing = _normalize(existing_title)
-        ratio = _fuzz_ratio(normalized_new, normalized_existing)
-        if ratio > threshold:
-            return FilterResult(
-                passed=False,
-                reason=f"Title '{new_title}' is {ratio}% similar to existing video '{video_id}' (threshold: {threshold}%)",
-                skipped_by="title_similarity",
-                matched_video_id=video_id,
-                matched_title=existing_title,
-                match_type="title_similarity",
+def check_title_similarity(
+    activity: dict[str, Any],
+    pipeline: PipelineConfig,
+    context: dict[str, Any],
+) -> FilterResult | None:
+    """Skip if activity title is too similar to a recently inserted video.
+
+    Reads ``context['recent_videos']`` — a ``list[dict]`` with ``title`` key
+    from the ``videos`` table, scoped to ``reprocess_days``.
+
+    Reads ``context['compare_distance']`` — int threshold (0–100, default 80).
+    Titles with similarity ratio >= threshold are rejected.
+
+    Returns ``FilterResult(passed=False)`` when a duplicate is found,
+    ``None`` when not applicable (no recent videos, or threshold not met).
+    """
+    recent_videos: list[dict[str, Any]] = context.get("recent_videos", [])
+    if not recent_videos:
+        return None
+
+    compare_distance: int = context.get("compare_distance", 80)
+    title = activity.get("title", "")
+    if not title:
+        return None
+
+    for entry in recent_videos:
+        existing_title = entry.get("title", "")
+        ratio = _fuzz_ratio(title, existing_title)
+        if ratio >= compare_distance:
+            video_id = entry.get("video_id", "unknown")
+            log.debug(
+                "title_similarity hit: title=%r similar to %r (ratio=%d%%)",
+                title,
+                existing_title,
+                ratio,
             )
-    return FilterResult(passed=True)
+            return FilterResult(
+                filter_stage=FilterStage.CHEAP,
+                filter_name="title_similarity",
+                passed=False,
+                reason=f"title similar to {video_id} ({ratio}%)",
+            )
+    return None
+
+
+register_filter("title_similarity", check_title_similarity, FilterStage.CHEAP)

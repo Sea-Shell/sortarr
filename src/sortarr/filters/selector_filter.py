@@ -1,59 +1,104 @@
+"""sortarr.filters.selector_filter — field/operator/pattern matching filter.
+
+Evaluates pipeline selectors against activity fields. Supports operators:
+contains, not_contains, equals, not_equals, starts_with, ends_with, regex.
+"""
+
+import logging
 import re
-from sortarr.models.pipeline import FilterResult, PipelineSelector
-from sortarr.models.youtube import Activity
+from typing import Any
+
+from sortarr.core.filters import register_filter
+from sortarr.models.pipeline import FilterResult, FilterStage, PipelineConfig
+
+log = logging.getLogger("sortarr.filters.selector")
+
+# Fields from activity dict that selectors can target.
+_ACTIVITY_FIELDS = {"title", "description", "channel_id", "channel_title", "video_id"}
 
 
-def selector_filter(
-    activity: Activity,
-    channel_title: str,
-    selectors: list[PipelineSelector],
-    mode: str = "AND",  # kept for backward compat
-) -> FilterResult:
-    if not selectors:
-        return FilterResult(passed=True)
+def _apply_operator(field_value: str, operator: str, pattern: str) -> bool:
+    """Apply a single operator to a field value. Returns True if matched."""
+    fv = field_value.lower()
+    pv = pattern.lower()
 
-    result = None
-    for sel in selectors:
-        value = _get_field_value(activity, channel_title, sel.field)
-        matched = _matches(value, sel.operator, sel.pattern)
-        if result is None:
-            result = matched
-        else:
-            op = sel.combine_operator.upper()
-            if op == "OR":
-                result = result or matched
-            else:
-                result = result and matched
-
-    if not result:
-        return FilterResult(
-            passed=False,
-            reason="Selector did not match",
-            skipped_by="selector",
-        )
-    return FilterResult(passed=True)
-
-
-def _get_field_value(activity: Activity, channel_title: str, field: str) -> str:
-    mapping = {
-        "title": activity.title,
-        "video_title": activity.title,
-        "channel_title": channel_title,
-        "description": activity.description or "",
-    }
-    return mapping.get(field, "")
-
-
-def _matches(value: str, operator: str, pattern: str) -> bool:
-    if not value or not pattern:
-        return False
     if operator == "contains":
-        return pattern.lower() in value.lower()
-    elif operator == "regex":
-        try:
-            return bool(re.search(pattern, value, re.IGNORECASE))
-        except re.error:
-            return False
+        return pv in fv
+    elif operator == "not_contains":
+        return pv not in fv
     elif operator == "equals":
-        return value.lower() == pattern.lower()
-    return False
+        return fv == pv
+    elif operator == "not_equals":
+        return fv != pv
+    elif operator == "starts_with":
+        return fv.startswith(pv)
+    elif operator == "ends_with":
+        return fv.endswith(pv)
+    elif operator == "regex":
+        return bool(re.search(pattern, field_value, re.IGNORECASE))
+    else:
+        log.warning("unknown selector operator %r — treating as no-match", operator)
+        return False
+
+
+def check_selectors(
+    activity: dict[str, Any],
+    pipeline: PipelineConfig,
+    context: dict[str, Any],
+) -> FilterResult | None:
+    """Evaluate pipeline selectors against activity fields.
+
+    Reads ``context['selectors']`` — a ``list[dict]`` with keys
+    ``field``, ``operator``, ``pattern``, ``combine_operator``.
+
+    ``selector_mode`` comes from ``pipeline.selector_mode`` ("AND" or "OR").
+    In AND mode every selector must match; in OR mode any one match suffices.
+
+    Returns ``FilterResult(passed=False)`` when the selector set rejects the
+    activity, ``None`` when no selectors are configured (no-op).
+    """
+    selectors: list[dict[str, Any]] = context.get("selectors", [])
+    if not selectors:
+        return None
+
+    mode = pipeline.selector_mode or "AND"
+    all_match = True
+    any_match = False
+
+    for sel in selectors:
+        field = sel.get("field", "")
+        operator = sel.get("operator", "contains")
+        pattern = sel.get("pattern", "")
+        field_value = str(activity.get(field, ""))
+
+        matched = _apply_operator(field_value, operator, pattern)
+
+        if matched:
+            any_match = True
+        else:
+            all_match = False
+
+        # Short-circuit: if AND already failed, or OR already succeeded
+        if mode == "AND" and not all_match:
+            break
+        if mode == "OR" and any_match:
+            break
+
+    passed = all_match if mode == "AND" else any_match
+
+    if not passed:
+        log.debug(
+            "selector filter rejected activity %r (mode=%s)",
+            activity.get("video_id"),
+            mode,
+        )
+        return FilterResult(
+            filter_stage=FilterStage.CHEAP,
+            filter_name="selector_filter",
+            passed=False,
+            reason=f"selectors not matched ({mode} mode)",
+        )
+    return None
+
+
+register_filter("selector_filter", check_selectors, FilterStage.CHEAP)
