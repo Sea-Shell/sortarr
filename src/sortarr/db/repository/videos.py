@@ -26,36 +26,6 @@ def insert_video(video: Video) -> None:
     conn.commit()
 
 
-def get_video(video_id: str) -> Video | None:
-    """Get a video by its YouTube video_id (most recent insert)."""
-    conn = get_connection()
-    row = conn.execute("""
-        SELECT video_id, title, duration_seconds, inserted_at,
-               pipeline_id, playlist_id
-        FROM videos
-        WHERE video_id = ?
-        ORDER BY inserted_at DESC
-        LIMIT 1
-    """, (video_id,)).fetchone()
-    
-    if not row:
-        return None
-    
-    # Map to Video model (need channel fields from somewhere else)
-    return Video(
-        video_id=row["video_id"],
-        title=row["title"] or "",
-        channel_id="",  # Not stored in videos table
-        channel_title="",  # Not stored in videos table
-        published_at="",  # Not stored in videos table
-        duration_seconds=row["duration_seconds"],
-        thumbnail_url=None,
-        pipeline_id=row["pipeline_id"] or "",
-        playlist_id=row["playlist_id"],
-        inserted_at=row["inserted_at"]
-    )
-
-
 def video_exists(video_id: str, pipeline_id: str) -> bool:
     """Check if a video has already been inserted for a pipeline."""
     conn = get_connection()

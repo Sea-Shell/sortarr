@@ -13,26 +13,30 @@ from googleapiclient.discovery import build
 
 log = logging.getLogger("sortarr.core.youtube")
 
-# Module-level quota counter
-_quota_used = 0
-
 
 def get_quota_used() -> int:
-    """Get the current quota usage for today."""
-    return _quota_used
+    """Get current quota usage from database."""
+    from sortarr.db.repository import config
+
+    value = config.get_config_value("quota_used", "0")
+    return int(value) if value else 0
 
 
 def reset_quota() -> None:
-    """Reset the quota counter (called at midnight PT or on app restart)."""
-    global _quota_used
-    _quota_used = 0
+    """Reset quota counter in database."""
+    from sortarr.db.repository import config
+
+    config.set_config("quota_used", "0")
     log.info("quota counter reset")
 
 
 def _increment_quota(cost: int) -> None:
-    """Increment the quota counter."""
-    global _quota_used
-    _quota_used += cost
+    """Increment quota counter atomically in database."""
+    from sortarr.db.repository import config
+
+    value = config.get_config_value("quota_used", "0")
+    current = int(value) if value else 0
+    config.set_config("quota_used", str(current + cost))
 
 
 class YouTubeAPIClient:

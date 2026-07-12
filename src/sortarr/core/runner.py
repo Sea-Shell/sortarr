@@ -89,8 +89,18 @@ class Runner:
         log.info("started run %d", run_id)
 
         try:
-            # Step 2: Concurrency guard
-            if config.get_config_value("run_active"):
+            # Step 2: Concurrency guard (atomic check-and-set)
+            from sortarr.db.connection import get_connection
+            import sqlite3
+
+            try:
+                conn = get_connection()
+                conn.execute(
+                    "INSERT INTO app_config (key, value) VALUES ('run_active', 'true')"
+                )
+                conn.commit()
+            except sqlite3.IntegrityError:
+                # Another run is active
                 log.warning("run already active — returning 409")
                 runs.update_run(
                     run_id,
@@ -101,8 +111,6 @@ class Runner:
                     },
                 )
                 return run_id
-
-            config.set_config("run_active", "true")
 
             # Step 3: Fetch subscriptions
             http = self.oauth_manager.get_http()
@@ -201,8 +209,11 @@ class Runner:
             enricher = Enricher(
                 lambda ids_csv: self.youtube_client.get_videos_batch(http, ids_csv)
             )
-            duration_map = enricher.batch_fetch(unique_video_ids)
+            duration_map, failed_ids = enricher.batch_fetch(unique_video_ids)
             run_summary.videos_enriched = len(duration_map)
+            
+            if failed_ids:
+                log.warning("failed to enrich %d videos: %s", len(failed_ids), failed_ids[:10])
 
             # Update activity_cache with durations
             for video_id, duration in duration_map.items():
@@ -240,12 +251,20 @@ class Runner:
                     },
                 )
                 runs.add_decisions(run_id, decisions)
-                config.set_config("run_active", "")  # Clear lock
+                conn = get_connection()
+                conn.execute("DELETE FROM app_config WHERE key = 'run_active'")
+                conn.commit()
                 return run_id
 
             # Step 11: Run duration filters and insert
             for pipeline in pipeline_configs:
                 survivors = survivors_per_pipeline[pipeline.id]
+                
+                # Defensive check: skip pipeline if no playlist_id
+                if not pipeline.playlist_id:
+                    log.error("pipeline %s has no playlist_id — skipping inserts", pipeline.id)
+                    run_summary.videos_skipped += len(survivors)
+                    continue
 
                 for activity in survivors:
                     # Run duration filter
@@ -319,7 +338,9 @@ class Runner:
             runs.add_decisions(run_id, decisions)
 
             # Step 14: Clear run_active
-            config.set_config("run_active", "")
+            conn = get_connection()
+            conn.execute("DELETE FROM app_config WHERE key = 'run_active'")
+            conn.commit()
 
             # Step 15: Prune activity cache
             activities.prune_old_entries(retention_days=30)
@@ -342,14 +363,20 @@ class Runner:
                     "error_message": str(e),
                 },
             )
-            config.set_config("run_active", "")  # Clear lock on failure
+            conn = get_connection()
+            conn.execute("DELETE FROM app_config WHERE key = 'run_active'")
+            conn.commit()
             raise
 
     def _startup_cleanup(self) -> None:
         """Clear stale run_active flag on startup (crash recovery)."""
+        from sortarr.db.connection import get_connection
+
         if config.get_config_value("run_active"):
             log.warning("clearing stale run_active flag from previous crashed run")
-            config.set_config("run_active", "")
+            conn = get_connection()
+            conn.execute("DELETE FROM app_config WHERE key = 'run_active'")
+            conn.commit()
 
     def _fetch_all_subscriptions(
         self, http: AuthorizedSession
@@ -426,24 +453,76 @@ class Runner:
         return acts[: self.activity_limit] if self.activity_limit else acts
 
     def _build_filter_context(self, pipeline) -> dict:
-        """Build context dict for filter chain."""
-        # Load ignore list entries
-        ignore_list_ids = pipelines.get_pipeline_ignore_lists(pipeline.id)
+        """Build context dict for filter chain.
 
-        # Load recent videos for title similarity (within reprocess_days)
-        # TODO: implement when title_similarity filter is integrated
+        Builds the context dict expected by filter functions:
+        - word_ignore_values: set of lowercase words from word-type ignore lists
+        - video_ignore_ids: set of video IDs from video-type ignore lists
+        - subscription_ignore_ids: set of subscription IDs from subscription-type ignore lists
+        - selectors: list of selector dicts with field/operator/pattern
+        - inserted_video_ids: set of already-inserted video IDs
+        """
+        from sortarr.db.connection import get_connection
 
-        # Load existing video IDs for db_exists filter
-        # TODO: implement when db_exists filter is integrated
-
-        return {
-            "word_ignore_values": set(),  # TODO: load from ignore_lists
-            "subscription_ignore_values": set(),  # TODO: load from ignore_lists
-            "video_ignore_values": set(),  # TODO: load from ignore_lists
-            "recent_videos": [],  # TODO: load from videos table
-            "existing_video_ids": set(),  # TODO: load from videos table
-            "selectors": [],  # TODO: load from pipeline_selectors
-            "compare_distance": 80,  # TODO: from config
-            "ignore_list_ids": ignore_list_ids,
+        conn = get_connection()
+        context: dict = {
+            "word_ignore_values": set(),
+            "video_ignore_ids": set(),
+            "subscription_ignore_ids": set(),
+            "selectors": [],
+            "inserted_video_ids": set(),
         }
+
+        # Load ignore list entries for this pipeline
+        ignore_list_ids = pipelines.get_pipeline_ignore_lists(pipeline.id)
+        if ignore_list_ids:
+            placeholders = ",".join("?" * len(ignore_list_ids))
+            rows = conn.execute(
+                f"""
+                SELECT il.list_type, ile.value
+                FROM ignore_lists il
+                JOIN ignore_list_entries ile ON ile.ignore_list_id = il.id
+                WHERE il.id IN ({placeholders})
+            """,
+                ignore_list_ids,
+            ).fetchall()
+
+            for row in rows:
+                list_type = row["list_type"]
+                value = row["value"]
+                if list_type == "word":
+                    context["word_ignore_values"].add(value.lower())
+                elif list_type == "video":
+                    context["video_ignore_ids"].add(value)
+                elif list_type == "subscription":
+                    context["subscription_ignore_ids"].add(value)
+
+        # Load selectors for this pipeline
+        selector_ids = pipelines.get_pipeline_selectors(pipeline.id)
+        if selector_ids:
+            placeholders = ",".join("?" * len(selector_ids))
+            rows = conn.execute(
+                f"""
+                SELECT field, operator, pattern, combine_operator
+                FROM pipeline_selectors
+                WHERE id IN ({placeholders})
+            """,
+                selector_ids,
+            ).fetchall()
+
+            context["selectors"] = [
+                {
+                    "field": row["field"],
+                    "operator": row["operator"],
+                    "pattern": row["pattern"],
+                    "combine_operator": row["combine_operator"],
+                }
+                for row in rows
+            ]
+
+        # Load already-inserted video IDs
+        rows = conn.execute("SELECT video_id FROM videos").fetchall()
+        context["inserted_video_ids"] = {row["video_id"] for row in rows}
+
+        return context
 

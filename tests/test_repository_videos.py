@@ -16,8 +16,8 @@ def db():
     close_db()
 
 
-def test_insert_and_get_video(db):
-    """Test inserting and retrieving a video."""
+def test_insert_video(db):
+    """Test inserting a video."""
     video = Video(
         video_id="test123",
         title="Test Video",
@@ -30,12 +30,9 @@ def test_insert_and_get_video(db):
     )
     
     videos.insert_video(video)
-    retrieved = videos.get_video("test123")
     
-    assert retrieved is not None
-    assert retrieved.video_id == "test123"
-    assert retrieved.title == "Test Video"
-    assert retrieved.duration_seconds == 300
+    # Verify via video_exists
+    assert videos.video_exists("test123", "pipeline1")
 
 
 def test_video_exists(db):
@@ -90,12 +87,6 @@ def test_search_videos_single_insert(db):
     assert len(results) == 1
     assert results[0]["video_id"] == "unique123"
     assert results[0]["pipeline_id"] == "pipe1"
-
-
-def test_get_video_nonexistent(db):
-    """Test get_video returns None for nonexistent video."""
-    result = videos.get_video("nonexistent")
-    assert result is None
 
 
 def test_videos_parameterized_queries(db):

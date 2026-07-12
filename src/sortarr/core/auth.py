@@ -7,6 +7,7 @@ Provides AuthorizedSession for API calls with auto-refresh.
 
 import json
 import logging
+import threading
 
 from google.auth.transport.requests import AuthorizedSession, Request
 from google.oauth2.credentials import Credentials
@@ -31,6 +32,7 @@ class OAuthManager:
         """
         self.client_secret_path = client_secret_path
         self.redirect_uri = redirect_uri
+        self._refresh_lock = threading.Lock()
 
     def get_authorization_url(self) -> str:
         """Generate OAuth 2.0 authorization URL.
@@ -126,11 +128,15 @@ class OAuthManager:
         if credentials is None:
             raise RuntimeError("not authenticated: call handle_callback() first")
 
-        # Refresh if expired
+        # Refresh if expired (with lock and double-check)
         if credentials.expired and credentials.refresh_token:
-            credentials.refresh(Request())
-            self.save_credentials(credentials)
-            log.info("OAuth token refreshed")
+            with self._refresh_lock:
+                # Double-check after acquiring lock
+                credentials = self.get_credentials()
+                if credentials and credentials.expired and credentials.refresh_token:
+                    credentials.refresh(Request())
+                    self.save_credentials(credentials)
+                    log.info("OAuth token refreshed")
 
         return AuthorizedSession(credentials)
 

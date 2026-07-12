@@ -1,0 +1,282 @@
+<h1>Three directions for a device-aware sortarr</h1>
+<p class="subtitle">All showing the <strong>Dashboard</strong> on a phone (~390px viewport). Each direction differs in navigation model, information density, and interaction patterns.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Bottom Sheet — Mobile-native nav</h3>
+      <p>Tab bar replaces sidebar. Slide-up panels for details. Cards stack full-width. Warm editorial personality.</p>
+      <span class="badge badge-running">Calm</span>
+      <span class="badge badge-ok">Swipe actions</span>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Fluid Grid — Container-query atomic</h3>
+      <p>Collapsible drawer nav. Everything remixes layout by container width. Overflow menus. Technical dense personality.</p>
+      <span class="badge badge-running">Dense</span>
+      <span class="badge badge-ok">Overflow menus</span>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Focus View — Progressive disclosure</h3>
+      <p>Single-column focus always. Top bar with hamburger. Horizontal scrolling stat carousel. Bottom action sheets. Clean app-like.</p>
+      <span class="badge badge-running">Spacious</span>
+      <span class="badge badge-ok">Action sheets</span>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<h2>Direction A — Bottom Sheet</h2>
+<div class="mockup">
+  <div class="mockup-header">Dashboard · Mobile 390px</div>
+  <div class="mockup-body" style="font-family:system-ui,sans-serif;font-size:13px;background:#F7F5F0;color:#1A1A1A;padding:16px;line-height:1.4">
+    <!-- Status bar area -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#2E7D32"></div>
+        <span style="font-size:11px;color:#5C5A54">healthy</span>
+      </div>
+      <span style="font-size:10px;color:#8C8A84">Next: 14:32:00 (2h 14m)</span>
+    </div>
+    <!-- Page title -->
+    <div style="margin-bottom:16px">
+      <span style="font-family:'Fraunces',Georgia,serif;font-size:22px;font-weight:700;color:#E62117">sortarr</span>
+      <span style="font-size:11px;color:#8C8A84;margin-left:6px">Dashboard</span>
+    </div>
+    <!-- Stat cards - 2x2 grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      <div style="background:#FFF;border:1px solid rgba(0,0,0,.08);border-radius:6px;padding:12px">
+        <div style="font-size:9px;font-weight:600;color:#8C8A84;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Subscriptions</div>
+        <div style="font-family:'Fraunces';font-size:24px;font-weight:700">24</div>
+      </div>
+      <div style="background:#FFF;border:1px solid rgba(0,0,0,.08);border-radius:6px;padding:12px">
+        <div style="font-size:9px;font-weight:600;color:#8C8A84;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Pipelines</div>
+        <div style="font-family:'Fraunces';font-size:24px;font-weight:700">5</div>
+      </div>
+      <div style="background:#FFF;border:1px solid rgba(0,0,0,.08);border-radius:6px;padding:12px">
+        <div style="font-size:9px;font-weight:600;color:#8C8A84;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Added</div>
+        <div style="font-family:'Fraunces';font-size:24px;font-weight:700">142</div>
+      </div>
+      <div style="background:#FFF;border:1px solid rgba(0,0,0,.08);border-radius:6px;padding:12px">
+        <div style="font-size:9px;font-weight:600;color:#8C8A84;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Last Run</div>
+        <div style="font-family:system-ui;font-size:12px;font-weight:500;color:#5C5A54">14:32 03.07</div>
+      </div>
+    </div>
+    <!-- Section title -->
+    <div style="font-size:10px;font-weight:600;color:#5C5A54;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Recent Runs</div>
+    <!-- Run cards -->
+    <div style="background:#FFF;border:1px solid rgba(0,0,0,.08);border-radius:6px;padding:12px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#2E7D32;flex-shrink:0"></div>
+        <span style="font-weight:600;font-size:13px">Run #47</span>
+        <span style="font-size:10px;color:#8C8A84;margin-left:auto">14:32:00 03.07.26</span>
+      </div>
+      <div style="display:flex;gap:12px;font-size:11px">
+        <span style="font-weight:500;color:#2E7D32">+12 added</span>
+        <span style="color:#E65100">3 skipped</span>
+        <span style="color:#C62828">0 errors</span>
+      </div>
+    </div>
+    <div style="background:#FFF;border:1px solid rgba(0,0,0,.08);border-radius:6px;padding:12px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#E65100;flex-shrink:0"></div>
+        <span style="font-weight:600;font-size:13px">Run #46</span>
+        <span style="font-size:10px;color:#8C8A84;margin-left:auto">08:15:00 03.07.26</span>
+      </div>
+      <div style="display:flex;gap:12px;font-size:11px">
+        <span style="font-weight:500;color:#2E7D32">+8 added</span>
+        <span style="color:#E65100">5 skipped</span>
+        <span style="color:#C62828">1 error</span>
+      </div>
+    </div>
+    <!-- Bottom tab bar mock -->
+    <div style="position:sticky;bottom:0;margin:16px -16px -16px;background:#FFF;border-top:1px solid rgba(0,0,0,.08);display:flex;padding:6px 0;justify-content:space-around;font-size:10px;color:#5C5A54">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;color:#E62117">
+        <span style="font-size:16px">&#9632;</span><span style="font-weight:600">Dashboard</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+        <span style="font-size:16px">&#8635;</span><span>Runs</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+        <span style="font-size:16px">&#9776;</span><span>Subs</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+        <span style="font-size:16px">&#8594;</span><span>Pipelines</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+        <span style="font-size:16px">&#9881;</span><span>Settings</span>
+      </div>
+    </div>
+    <div style="margin-top:8px;font-size:9px;color:#B0ADA6;text-align:center">← Tab bar + slide-up panels for details</div>
+  </div>
+</div>
+
+<h2>Direction B — Fluid Grid</h2>
+<div class="mockup">
+  <div class="mockup-header">Dashboard · Mobile 390px</div>
+  <div class="mockup-body" style="font-family:system-ui,sans-serif;font-size:13px;background:#F0EDE8;color:#1A1A1A;padding:16px;line-height:1.4">
+    <!-- Compact header -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <button style="background:none;border:1px solid rgba(0,0,0,.08);border-radius:4px;padding:4px 6px;font-size:16px;cursor:pointer">&#9776;</button>
+      <span style="font-family:'Fraunces';font-weight:700;color:#E62117;font-size:15px;letter-spacing:-.02em">sortarr</span>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+        <div style="width:6px;height:6px;border-radius:50%;background:#2E7D32"></div>
+        <span style="font-size:10px;color:#8C8A84">ok</span>
+      </div>
+    </div>
+    <!-- Stats overflow scroll -->
+    <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:12px;-webkit-overflow-scrolling:touch">
+      <div style="flex-shrink:0;width:120px;background:#FFF;border-radius:6px;padding:10px;border:1px solid rgba(0,0,0,.08)">
+        <div style="font-size:9px;font-weight:600;color:#8C8A84;text-transform:uppercase">Subs</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:600">24</div>
+      </div>
+      <div style="flex-shrink:0;width:120px;background:#FFF;border-radius:6px;padding:10px;border:1px solid rgba(0,0,0,.08)">
+        <div style="font-size:9px;font-weight:600;color:#8C8A84;text-transform:uppercase">Pipelines</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:600">5</div>
+      </div>
+      <div style="flex-shrink:0;width:120px;background:#FFF;border-radius:6px;padding:10px;border:1px solid rgba(0,0,0,.08)">
+        <div style="font-size:9px;font-weight:600;color:#8C8A84;text-transform:uppercase">Added</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:600;color:#2E7D32">+142</div>
+      </div>
+      <div style="flex-shrink:0;width:120px;background:#FFF;border-radius:6px;padding:10px;border:1px solid rgba(0,0,0,.08)">
+        <div style="font-size:9px;font-weight:600;color:#8C8A84;text-transform:uppercase">Last Run</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;color:#5C5A54">14:32 03.07</div>
+      </div>
+    </div>
+    <!-- Section + filter -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:10px;font-weight:600;color:#5C5A54;text-transform:uppercase">Recent Runs</div>
+      <button style="background:none;border:1px solid rgba(0,0,0,.08);border-radius:4px;padding:2px 8px;font-size:10px;color:#5C5A54;cursor:pointer">Filter</button>
+    </div>
+    <!-- Dense run cards -->
+    <div style="background:#FFF;border-radius:6px;padding:10px;margin-bottom:6px;display:flex;align-items:center;gap:8px;cursor:pointer">
+      <div style="width:6px;height:6px;border-radius:50%;background:#2E7D32;flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:12px">Run #47<span style="font-size:9px;color:#8C8A84;margin-left:4px">Default</span></div>
+        <div style="font-size:10px;color:#8C8A84">+12 / ~3 / !0</div>
+      </div>
+      <span style="font-size:9px;color:#8C8A84;flex-shrink:0">14:32</span>
+      <button style="background:none;border:none;font-size:16px;color:#8C8A84;cursor:pointer">&#8942;</button>
+    </div>
+    <div style="background:#FFF;border-radius:6px;padding:10px;margin-bottom:6px;display:flex;align-items:center;gap:8px;cursor:pointer">
+      <div style="width:6px;height:6px;border-radius:50%;background:#E65100;flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:12px">Run #46<span style="font-size:9px;color:#8C8A84;margin-left:4px">Weekly</span></div>
+        <div style="font-size:10px;color:#8C8A84">+8 / ~5 / !1</div>
+      </div>
+      <span style="font-size:9px;color:#8C8A84;flex-shrink:0">08:15</span>
+      <button style="background:none;border:none;font-size:16px;color:#8C8A84;cursor:pointer">&#8942;</button>
+    </div>
+    <!-- FAB for trigger -->
+    <div style="position:fixed;bottom:20px;right:20px;width:48px;height:48px;border-radius:50%;background:#E62117;color:#FFF;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 12px rgba(230,33,23,.4);cursor:pointer">&#9654;</div>
+    <div style="margin-top:8px;font-size:9px;color:#B0ADA6;text-align:center">← Horizontal scroll stats + overflow menu + FAB → drawer nav</div>
+  </div>
+</div>
+
+<h2>Direction C — Focus View</h2>
+<div class="mockup">
+  <div class="mockup-header">Dashboard · Mobile 390px</div>
+  <div class="mockup-body" style="font-family:system-ui,sans-serif;font-size:13px;background:#F7F5F0;color:#1A1A1A;padding:16px;line-height:1.6">
+    <!-- Status bar -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
+      <button style="background:none;border:none;font-size:20px;padding:4px;cursor:pointer;color:#1A1A1A">&#9776;</button>
+      <span style="flex:1;font-family:'Fraunces';font-size:16px;font-weight:600;color:#1A1A1A">sortarr</span>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div style="width:6px;height:6px;border-radius:50%;background:#2E7D32"></div>
+        <span style="font-size:10px;color:#5C5A54">System OK</span>
+      </div>
+    </div>
+    <!-- Hero stat -->
+    <div style="background:#FFF;border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:20px;margin-bottom:12px;text-align:center">
+      <div style="font-size:10px;font-weight:600;color:#8C8A84;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Last Pipeline Run</div>
+      <div style="font-family:'Fraunces';font-size:32px;font-weight:700;color:#E62117;margin-bottom:2px">Run #47</div>
+      <div style="display:flex;justify-content:center;gap:16px;margin-top:8px">
+        <span style="font-size:12px;color:#2E7D32;font-weight:600">+12 added</span>
+        <span style="font-size:12px;color:#E65100">3 skipped</span>
+        <span style="font-size:12px;color:#C62828">0 errors</span>
+      </div>
+      <div style="font-size:10px;color:#B0ADA6;margin-top:6px">14:32:00 · Default pipeline</div>
+    </div>
+    <!-- Sub-stats row -->
+    <div style="display:flex;gap:8px;margin-bottom:20px">
+      <div style="flex:1;background:#FFF;border-radius:8px;padding:12px;text-align:center;border:1px solid rgba(0,0,0,.08)">
+        <div style="font-size:9px;font-weight:600;color:#8C8A84;text-transform:uppercase">Channels</div>
+        <div style="font-size:18px;font-weight:700">24</div>
+      </div>
+      <div style="flex:1;background:#FFF;border-radius:8px;padding:12px;text-align:center;border:1px solid rgba(0,0,0,.08)">
+        <div style="font-size:9px;font-weight:600;color:#8C8A84;text-transform:uppercase">Pipelines</div>
+        <div style="font-size:18px;font-weight:700">5</div>
+      </div>
+      <div style="flex:1;background:#FFF;border-radius:8px;padding:12px;text-align:center;border:1px solid rgba(0,0,0,.08)">
+        <div style="font-size:9px;font-weight:600;color:#8C8A84;text-transform:uppercase">Total</div>
+        <div style="font-size:18px;font-weight:700">142</div>
+      </div>
+    </div>
+    <!-- Recent section -->
+    <div style="margin-bottom:12px">
+      <div style="margin-bottom:8px">
+        <span style="font-size:13px;font-weight:600">Recent Runs</span>
+        <a href="#" style="float:right;font-size:11px;color:#E62117;text-decoration:none">See all</a>
+      </div>
+      <div style="background:#FFF;border-radius:8px;padding:14px;border:1px solid rgba(0,0,0,.08);margin-bottom:6px;cursor:pointer">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:10px;height:10px;border-radius:50%;background:#2E7D32;flex-shrink:0"></div>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:13px">Run #47</div>
+            <div style="font-size:11px;color:#8C8A84;display:flex;gap:8px;margin-top:2px">
+              <span>+12</span><span>~3</span><span>!0</span>
+              <span style="margin-left:auto">14:32</span>
+            </div>
+          </div>
+          <span style="font-size:16px;color:#B0ADA6">&#8250;</span>
+        </div>
+      </div>
+      <div style="background:#FFF;border-radius:8px;padding:14px;border:1px solid rgba(0,0,0,.08);cursor:pointer">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:10px;height:10px;border-radius:50%;background:#E65100;flex-shrink:0"></div>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:13px">Run #46</div>
+            <div style="font-size:11px;color:#8C8A84;display:flex;gap:8px;margin-top:2px">
+              <span>+8</span><span>~5</span><span>!1</span>
+              <span style="margin-left:auto">08:15</span>
+            </div>
+          </div>
+          <span style="font-size:16px;color:#B0ADA6">&#8250;</span>
+        </div>
+      </div>
+    </div>
+    <!-- Trigger action -->
+    <button style="width:100%;padding:12px;border:none;border-radius:8px;background:#E62117;color:#FFF;font-weight:600;font-size:13px;cursor:pointer">&#9654; Run Pipeline</button>
+    <div style="margin-top:8px;font-size:9px;color:#B0ADA6;text-align:center">← Hamburger drawer + hero card + chevron nav → detail from the right</div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<h2>Key differences at a glance</h2>
+
+<table style="width:100%;border-collapse:collapse;font-size:12px">
+  <thead>
+    <tr style="background:#F0EDE8">
+      <th style="padding:6px 8px;text-align:left">Dimension</th>
+      <th style="padding:6px 8px;text-align:left">A · Bottom Sheet</th>
+      <th style="padding:6px 8px;text-align:left">B · Fluid Grid</th>
+      <th style="padding:6px 8px;text-align:left">C · Focus View</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)"><strong>Nav model</strong></td><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)">Bottom tab bar</td><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)">Drawer + overflow</td><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)">Hamburger + top bar</td></tr>
+    <tr><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)"><strong>Stat layout</strong></td><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)">2x2 grid</td><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)">Horizontal scroll</td><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)">Hero + 3 sub-cards</td></tr>
+    <tr><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)"><strong>Density</strong></td><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)">Moderate</td><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)">Dense (data per inch)</td><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)">Spacious (breathing room)</td></tr>
+    <tr><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)"><strong>Detail views</strong></td><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)">Slide-up panels</td><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)">Overflow menu (&#8942;)</td><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)">Full page push</td></tr>
+    <tr><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)"><strong>Personality</strong></td><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)">Editorial / Warm</td><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)">Technical / Brutalist</td><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)">App-native / Clean</td></tr>
+    <tr><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)"><strong>Run trigger</strong></td><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)">In sidebar footer</td><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)">FAB (floating action)</td><td style="padding:4px 8px;border-bottom:1px solid rgba(0,0,0,.08)">Banner button</td></tr>
+  </tbody>
+</table>

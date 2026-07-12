@@ -164,6 +164,10 @@ CREATE TABLE IF NOT EXISTS app_config (
     value TEXT NOT NULL
 );
 
+-- Unique constraint for run_active concurrency guard
+CREATE UNIQUE INDEX IF NOT EXISTS idx_config_run_active 
+ON app_config(key) WHERE key = 'run_active' AND value = 'true';
+
 -- OAuth Credentials (DB-backed, single row)
 CREATE TABLE IF NOT EXISTS oauth_credentials (
     id INTEGER PRIMARY KEY CHECK(id = 1),

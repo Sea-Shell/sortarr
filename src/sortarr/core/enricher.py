@@ -57,14 +57,14 @@ class Enricher:
     def __init__(self, youtube_api: Callable[[str], Any]) -> None:
         self.youtube_api = youtube_api
 
-    def batch_fetch(self, video_ids: set[str]) -> dict[str, int]:
+    def batch_fetch(self, video_ids: set[str]) -> tuple[dict[str, int], list[str]]:
         """Fetch durations for *video_ids* in batches of 50.
 
-        Returns a dict mapping ``video_id → duration_seconds``.
-        IDs whose duration cannot be parsed are silently omitted.
+        Returns: (duration_map, failed_video_ids)
         """
         ids_list = list(video_ids)
         duration_map: dict[str, int] = {}
+        failed_ids: list[str] = []
         batch_count = 0
 
         for i in range(0, len(ids_list), self._BATCH_SIZE):
@@ -86,12 +86,14 @@ class Enricher:
                 log.exception(
                     "batch enrichment failed for batch of %d videos", len(batch)
                 )
+                failed_ids.extend(batch)
                 continue
 
         log.info(
-            "enriched %d/%d video durations (%d batches)",
+            "enriched %d/%d video durations (%d batches, %d failed videos)",
             len(duration_map),
             len(video_ids),
             batch_count,
+            len(failed_ids),
         )
-        return duration_map
+        return duration_map, failed_ids

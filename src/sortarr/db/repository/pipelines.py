@@ -23,6 +23,10 @@ log = logging.getLogger("sortarr.db.repository.pipelines")
 
 def create_pipeline(config: PipelineCreate) -> PipelineConfig:
     """Create a new pipeline with optional junction table entries."""
+    # Validate playlist_id
+    if not config.playlist_id or not config.playlist_id.strip():
+        raise ValueError("playlist_id is required and cannot be empty")
+    
     pipeline_id = str(uuid.uuid4())
     conn = get_connection()
 
@@ -221,23 +225,19 @@ def get_pipeline_ignore_lists(pipeline_id: str) -> list[str]:
 def set_selectors(pipeline_id: str, selector_ids: list[str]) -> None:
     """Replace pipeline's selector associations.
 
-    Note: This is a simplified implementation that stores selector IDs.
-    The full implementation would handle selector CRUD with field/operator/pattern.
+    Note: Selector CRUD is not yet implemented in Phase 3-4.
     """
     conn = get_connection()
-    conn.execute("DELETE FROM pipeline_selectors WHERE pipeline_id = ?", (pipeline_id,))
+    
+    # Raise error if trying to add selectors
     if selector_ids:
-        # For now, we store selector_ids as placeholder entries
-        # Real implementation would insert proper selector records with field/operator/pattern
-        for selector_id in selector_ids:
-            conn.execute(
-                """
-                INSERT INTO pipeline_selectors (
-                    id, pipeline_id, field, operator, pattern, combine_operator, created_at
-                ) VALUES (?, ?, '', '', '', 'AND', datetime('now'))
-            """,
-                (selector_id, pipeline_id),
-            )
+        raise NotImplementedError(
+            "Selector CRUD is not implemented. "
+            "Use ignore lists for filtering in Phase 3-4."
+        )
+    
+    # Allow clearing selectors
+    conn.execute("DELETE FROM pipeline_selectors WHERE pipeline_id = ?", (pipeline_id,))
 
 
 def get_pipeline_selectors(pipeline_id: str) -> list[str]:
