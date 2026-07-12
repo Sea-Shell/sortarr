@@ -18,3 +18,7 @@ Format: `- YYYY-MM-DD — <doc(s) touched> — <what changed and why>`
 - 2026-07-08 — pipeline.md — documented in-memory dedup by video_id in _collect_activities() to avoid redundant API calls.
 - 2026-07-09 — api.md — updated subscriptions endpoint to DB-backed; added pipeline/runs/search route to route table; fixed route ordering note (literal paths before dynamic params).
 - 2026-07-11 — api.md — added playlists route with YouTube API + DB fallback to route table.
+- 2026-07-11 — api.md — enriched playlists fallback to also query distinct destination_playlist from pipelines table.
+- 2026-07-11 — pipeline.md — added Subscription Sync section documenting DB persistence of subscriptions before Phase 1.
+- 2026-07-11 — api.md — updated subscriptions endpoint to sync-then-serve pattern (YouTube API → DB fallback).
+- 2026-07-12 — api.md — activity endpoint now falls back to activity_cache when YouTube API is unavailable.

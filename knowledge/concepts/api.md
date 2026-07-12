@@ -4,7 +4,7 @@ title: Sortarr HTTP API
 description: FastAPI app factory, shared AppState, dependency providers, and the REST routes for config, auth, pipelines, subscriptions, and metrics.
 resource: https://github.com/Sea-Shell/sortarr/tree/main/src/sortarr/api
 tags: [sortarr, api, fastapi, rest]
-timestamp: 2026-07-11T00:00:00Z
+timestamp: 2026-07-12T00:00:00Z
 ---
 
 # App factory
@@ -28,9 +28,9 @@ Route modules in `src/sortarr/api/routes/`:
 | `health.py`           | `GET /api/health`                                                                                                |
 | `config.py`           | `GET/PUT /api/config`, `GET/POST /api/config/ignores`, `DELETE /api/config/ignores/{id}`                         |
 | `auth.py`             | `GET /api/auth/status`, `POST /api/auth/device`, `POST /api/auth/poll` — see [auth](/knowledge/concepts/auth.md) |
-| `subscriptions.py`    | `GET /api/subscriptions` (DB-backed, no YouTube API dependency), `GET /api/subscriptions/{cid}/activity` (requires YouTube API) |
+| `subscriptions.py`    | `GET /api/subscriptions` (syncs from YouTube API when available, falls back to DB cache), `GET /api/subscriptions/{cid}/activity` (YouTube API → activity_cache fallback) |
 | `rules.py`            | CRUD `/api/rules` (legacy routing rules)                                                                         |
-| `pipelines.py`        | CRUD pipelines, selectors, attachments, ignore-lists CRUD, `GET /api/playlists` (YouTube API with DB fallback) |
+| `pipelines.py`        | CRUD pipelines, selectors, attachments, ignore-lists CRUD, `GET /api/playlists` (YouTube API with DB fallback from `playlist` + `pipelines` tables) |
 | `pipeline.py`         | `POST /api/pipeline/trigger`, `GET /api/pipeline/runs`, `GET /api/pipeline/runs/search`, `GET /api/pipeline/runs/{id}`, `GET /api/pipeline/runs/{id}/decisions` |
 | `playlist_tracker.py` | Playlist reconciliation endpoints                                                                                |
 | `stats.py`            | Aggregate stats                                                                                                  |
