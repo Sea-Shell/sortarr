@@ -4,7 +4,7 @@ title: Sortarr Knowledge Bundle — Change Log
 description: Chronological record of changes to the knowledge/ OKF bundle. Append one line per change; newest at top.
 resource: https://github.com/Sea-Shell/sortarr
 tags: [sortarr, log, okf, changelog]
-timestamp: 2026-07-11T00:00:00Z
+timestamp: 2026-07-12T17:30:00Z
 ---
 
 # Change Log
@@ -24,5 +24,7 @@ Format: `- YYYY-MM-DD — <doc(s) touched> — <what changed and why>`
 - 2026-07-12 — pipeline.md — documented restored per-subscription tracking narrowing in _compute_published_after (max() of reprocess_days ceiling and min_tracking_ts).
 - 2026-07-12 — api.md — activity endpoint now falls back to activity_cache when YouTube API is unavailable.
 - 2026-07-12 — architecture.md, index.md — v2 greenfield skeleton: deleted all v1 files, created new module layout with stubs. Added v1→v2 diff table and updated flow descriptions.
+- 2026-07-12 — runtime-config.md — v2 Settings fields: removed v1 fields (pickle_file, credentials_file, log_file, compare_distance, playlist_sleep, etc.), added client_secret_path, public_url as env var. Added v1→v2 changelog section.
 - 2026-07-12 — database.md — rewrote for v2: replaced v1 schema (channel, playlist, routing_rules, etc.) with v2 schema (14 tables, 6 indexes, V3_SCHEMA_SQL). Added init_db() description and repository layout.
 - 2026-07-12 — database.md — added connection lifecycle (init_db/get_connection/close_db/connection_ctx), WAL mode, foreign keys, and pragma table.
+- 2026-07-12 — filters.md — added duration filter to filter table, documented two-stage filter chain (cheap → duration), and described check_duration behavior (unknown durations pass through).
