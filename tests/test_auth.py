@@ -1,97 +1,282 @@
+"""
+Tests for sortarr.core.auth — OAuth credential management.
+"""
+
 import json
 import sqlite3
-from sortarr.db import repository as repo
-from sortarr.core.auth import (
-    get_client_config,
-    credentials_status,
-)
+from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pytest
+from google.auth.transport.requests import AuthorizedSession
+from google.oauth2.credentials import Credentials
+
+from sortarr.core.auth import OAuthManager
+from sortarr.db.connection import init_db
+from sortarr.db.migrations import init_db as run_migrations
 
 
-def _db() -> sqlite3.Connection:
-    con = sqlite3.connect(":memory:")
-    con.row_factory = sqlite3.Row
-    con.execute(
-        "CREATE TABLE IF NOT EXISTS app_config (key TEXT PRIMARY KEY, value TEXT)"
+@pytest.fixture
+def test_db(tmp_path: Path) -> sqlite3.Connection:
+    """Create a test database with schema applied."""
+    db_path = tmp_path / "test.db"
+    conn = init_db(str(db_path))
+    run_migrations(conn)
+    return conn
+
+
+@pytest.fixture
+def oauth_manager(tmp_path: Path) -> OAuthManager:
+    """Create an OAuthManager instance with test config."""
+    client_secret = tmp_path / "client_secret.json"
+    client_secret.write_text(
+        json.dumps(
+            {
+                "installed": {
+                    "client_id": "test_client_id",
+                    "client_secret": "test_client_secret",
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "redirect_uris": ["http://localhost:8080/callback"],
+                }
+            }
+        )
     )
-    return con
-
-
-def test_get_client_config_returns_none_for_missing():
-    db_con = _db()
-    result = get_client_config(db_con)
-    assert result is None
-
-
-def test_get_client_config_parses_installed():
-    db_con = _db()
-    repo.set_config(
-        db_con,
-        "credentials_file",
-        json.dumps({"installed": {"client_id": "abc", "client_secret": "def"}}),
+    return OAuthManager(
+        client_secret_path=str(client_secret),
+        redirect_uri="http://localhost:8080/api/auth/callback",
     )
-    result = get_client_config(db_con)
-    assert result == {"client_id": "abc", "client_secret": "def"}
 
 
-def test_get_client_config_parses_web():
-    db_con = _db()
-    repo.set_config(
-        db_con,
-        "credentials_file",
-        json.dumps({"web": {"client_id": "xyz", "client_secret": "123"}}),
-    )
-    result = get_client_config(db_con)
-    assert result == {"client_id": "xyz", "client_secret": "123"}
-
-
-def test_credentials_status_none():
-    assert credentials_status(None) == {"authenticated": False}
-
-
-def test_oauth2_credentials_constructor():
-    from google.oauth2.credentials import Credentials
-
+def test_save_and_load_credentials(test_db: sqlite3.Connection, oauth_manager: OAuthManager):
+    """Test save/load credentials cycle."""
+    # Create test credentials
     creds = Credentials(
-        token="ya29.test_token",
-        refresh_token="1//test_refresh",
+        token="test_access_token",
+        refresh_token="test_refresh_token",
         token_uri="https://oauth2.googleapis.com/token",
-        client_id="123456.apps.googleusercontent.com",
-        client_secret="G0ogleS3cret",
-        scopes=["https://www.googleapis.com/auth/youtube"],
+        client_id="test_client_id",
+        client_secret="test_client_secret",
+        scopes=["https://www.googleapis.com/auth/youtube.force-ssl"],
     )
-    assert creds.token == "ya29.test_token"
-    assert creds.refresh_token == "1//test_refresh"
-    assert creds.valid
-    assert creds.expired is False
+
+    # Save credentials
+    oauth_manager.save_credentials(creds)
+
+    # Load credentials
+    loaded = oauth_manager.get_credentials()
+    assert loaded is not None
+    assert loaded.token == "test_access_token"
+    assert loaded.refresh_token == "test_refresh_token"
+    assert loaded.token_uri == "https://oauth2.googleapis.com/token"
+    assert loaded.client_id == "test_client_id"
+    assert loaded.client_secret == "test_client_secret"
+    assert loaded.scopes == ["https://www.googleapis.com/auth/youtube.force-ssl"]
 
 
-def test_oauth2_credentials_pickle_roundtrip():
-    import pickle
-    from google.oauth2.credentials import Credentials
-
+def test_clear_credentials(test_db: sqlite3.Connection, oauth_manager: OAuthManager):
+    """Test clearing credentials from database."""
+    # Save credentials
     creds = Credentials(
-        token="ya29.test_token",
-        refresh_token="1//test_refresh",
+        token="test_token",
+        refresh_token="test_refresh",
         token_uri="https://oauth2.googleapis.com/token",
-        client_id="123456.apps.googleusercontent.com",
-        client_secret="G0ogleS3cret",
-        scopes=["https://www.googleapis.com/auth/youtube"],
+        client_id="test_client",
+        client_secret="test_secret",
     )
-    data = pickle.dumps(creds)
-    loaded = pickle.loads(data)
-    assert loaded.token == "ya29.test_token"
-    assert loaded.refresh_token == "1//test_refresh"
+    oauth_manager.save_credentials(creds)
+
+    # Verify saved
+    assert oauth_manager.is_authenticated()
+
+    # Clear credentials
+    oauth_manager.clear_credentials()
+
+    # Verify cleared
+    assert not oauth_manager.is_authenticated()
+    assert oauth_manager.get_credentials() is None
 
 
-def test_credentials_status_with_valid_creds():
-    from google.oauth2.credentials import Credentials
-    from sortarr.core.auth import credentials_status
+def test_is_authenticated(test_db: sqlite3.Connection, oauth_manager: OAuthManager):
+    """Test is_authenticated returns correct status."""
+    # Initially not authenticated
+    assert not oauth_manager.is_authenticated()
 
+    # Save credentials
     creds = Credentials(
-        token="ya29.test_token",
+        token="test_token",
+        refresh_token="test_refresh",
         token_uri="https://oauth2.googleapis.com/token",
-        client_id="123456.apps.googleusercontent.com",
-        client_secret="G0ogleS3cret",
     )
-    status = credentials_status(creds)
-    assert status["authenticated"] is True
+    oauth_manager.save_credentials(creds)
+
+    # Now authenticated
+    assert oauth_manager.is_authenticated()
+
+
+def test_get_http_returns_authorized_session(test_db: sqlite3.Connection, oauth_manager: OAuthManager):
+    """Test get_http returns AuthorizedSession with valid credentials."""
+    # Save valid credentials
+    creds = Credentials(
+        token="test_token",
+        refresh_token="test_refresh",
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id="test_client",
+        client_secret="test_secret",
+    )
+    oauth_manager.save_credentials(creds)
+
+    # Get HTTP session
+    session = oauth_manager.get_http()
+    assert isinstance(session, AuthorizedSession)
+    assert session.credentials.token == "test_token"
+
+
+def test_get_http_raises_when_not_authenticated(test_db: sqlite3.Connection, oauth_manager: OAuthManager):
+    """Test get_http raises RuntimeError when not authenticated."""
+    with pytest.raises(RuntimeError, match="not authenticated"):
+        oauth_manager.get_http()
+
+
+def test_token_refresh_on_expired(test_db: sqlite3.Connection, oauth_manager: OAuthManager):
+    """Test token refresh logic when credentials are expired."""
+    # Create expired credentials
+    creds = Credentials(
+        token="old_token",
+        refresh_token="test_refresh",
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id="test_client",
+        client_secret="test_secret",
+    )
+    # Mark as expired
+    creds._expires_at = None  # Force expired state
+
+    oauth_manager.save_credentials(creds)
+
+    # Mock the refresh call
+    with patch.object(Credentials, "expired", True), patch.object(
+        Credentials, "refresh"
+    ) as mock_refresh:
+        # Mock refresh to update token
+        def refresh_side_effect(request):
+            creds._token = "new_token"
+
+        mock_refresh.side_effect = refresh_side_effect
+
+        # Get HTTP session - should trigger refresh
+        oauth_manager.get_http()
+
+        # Verify refresh was called
+        mock_refresh.assert_called_once()
+
+
+def test_handle_callback_saves_credentials(test_db: sqlite3.Connection, oauth_manager: OAuthManager):
+    """Test handle_callback correctly parses token response and saves."""
+    mock_flow = Mock()
+    mock_credentials = Credentials(
+        token="callback_token",
+        refresh_token="callback_refresh",
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id="test_client",
+        client_secret="test_secret",
+    )
+    mock_flow.credentials = mock_credentials
+
+    with patch("sortarr.core.auth.Flow.from_client_secrets_file", return_value=mock_flow):
+        oauth_manager.handle_callback("test_auth_code")
+
+    # Verify credentials were saved
+    loaded = oauth_manager.get_credentials()
+    assert loaded is not None
+    assert loaded.token == "callback_token"
+    assert loaded.refresh_token == "callback_refresh"
+
+
+def test_get_authorization_url(oauth_manager: OAuthManager):
+    """Test get_authorization_url generates valid URL."""
+    url = oauth_manager.get_authorization_url()
+
+    # Verify URL structure
+    assert url.startswith("https://accounts.google.com/o/oauth2/auth")
+    assert "client_id=test_client_id" in url
+    assert "redirect_uri=" in url
+    assert "scope=" in url
+    assert "access_type=offline" in url
+
+
+def test_credentials_never_logged(test_db: sqlite3.Connection, oauth_manager: OAuthManager, caplog):
+    """Test that credentials are never logged."""
+    import logging
+
+    caplog.set_level(logging.DEBUG)
+
+    # Save credentials with sensitive data
+    creds = Credentials(
+        token="SECRET_ACCESS_TOKEN",
+        refresh_token="SECRET_REFRESH_TOKEN",
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id="test_client",
+        client_secret="SECRET_CLIENT_SECRET",
+    )
+    oauth_manager.save_credentials(creds)
+
+    # Load credentials
+    oauth_manager.get_credentials()
+
+    # Get HTTP session
+    oauth_manager.get_http()
+
+    # Clear credentials
+    oauth_manager.clear_credentials()
+
+    # Check log output doesn't contain sensitive values
+    log_output = caplog.text
+    assert "SECRET_ACCESS_TOKEN" not in log_output
+    assert "SECRET_REFRESH_TOKEN" not in log_output
+    assert "SECRET_CLIENT_SECRET" not in log_output
+
+
+def test_save_credentials_updates_existing(test_db: sqlite3.Connection, oauth_manager: OAuthManager):
+    """Test saving credentials updates existing row instead of creating duplicate."""
+    # Save first credentials
+    creds1 = Credentials(
+        token="token1",
+        refresh_token="refresh1",
+        token_uri="https://oauth2.googleapis.com/token",
+    )
+    oauth_manager.save_credentials(creds1)
+
+    # Save second credentials
+    creds2 = Credentials(
+        token="token2",
+        refresh_token="refresh2",
+        token_uri="https://oauth2.googleapis.com/token",
+    )
+    oauth_manager.save_credentials(creds2)
+
+    # Verify only one row exists with latest credentials
+    conn = test_db
+    rows = conn.execute("SELECT COUNT(*) as count FROM oauth_credentials").fetchone()
+    assert rows["count"] == 1
+
+    loaded = oauth_manager.get_credentials()
+    assert loaded.token == "token2"
+    assert loaded.refresh_token == "refresh2"
+
+
+def test_credentials_with_none_values(test_db: sqlite3.Connection, oauth_manager: OAuthManager):
+    """Test saving credentials with None values doesn't break JSON."""
+    # Create credentials with some None values
+    creds = Credentials(
+        token="test_token",
+        refresh_token=None,  # No refresh token
+        token_uri="https://oauth2.googleapis.com/token",
+    )
+    oauth_manager.save_credentials(creds)
+
+    # Load and verify
+    loaded = oauth_manager.get_credentials()
+    assert loaded is not None
+    assert loaded.token == "test_token"
+    assert loaded.refresh_token is None
+

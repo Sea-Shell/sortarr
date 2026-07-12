@@ -167,13 +167,7 @@ CREATE TABLE IF NOT EXISTS app_config (
 -- OAuth Credentials (DB-backed, single row)
 CREATE TABLE IF NOT EXISTS oauth_credentials (
     id INTEGER PRIMARY KEY CHECK(id = 1),
-    access_token TEXT,
-    refresh_token TEXT,
-    token_uri TEXT,
-    client_id TEXT,
-    client_secret TEXT,
-    scopes TEXT,
-    expiry TEXT,
+    token_json TEXT NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );

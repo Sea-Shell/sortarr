@@ -1,125 +1,135 @@
-import base64
+"""
+sortarr.core.auth — OAuth 2.0 credential management (DB-backed).
+
+Stores credentials in the oauth_credentials table instead of pickle files.
+Provides AuthorizedSession for API calls with auto-refresh.
+"""
+
 import json
 import logging
-import pickle
-import sqlite3
-from typing import Optional
-from urllib.parse import urlencode
-from google.auth.credentials import Credentials
-from google.oauth2.credentials import Credentials as OAuth2Credentials
-from google.auth.transport.requests import Request
-import httpx
-from sortarr.db.repository import config as repo
 
-log = logging.getLogger("sortarr.auth")
+from google.auth.transport.requests import AuthorizedSession, Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import Flow
 
-SCOPES = [
-    "https://www.googleapis.com/auth/youtubepartner",
-    "https://www.googleapis.com/auth/youtube.force-ssl",
-    "https://www.googleapis.com/auth/youtube",
-    "https://www.googleapis.com/auth/youtube.readonly",
-]
+from sortarr.db.connection import get_connection
 
-AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-TOKEN_URL = "https://oauth2.googleapis.com/token"
+log = logging.getLogger("sortarr.core.auth")
+
+# OAuth 2.0 scopes
+SCOPES = ["https://www.googleapis.com/auth/youtube.force-ssl"]
 
 
-def get_client_config(db_con: sqlite3.Connection) -> Optional[dict]:
-    """Extract client_id and client_secret from Google OAuth credentials JSON in DB."""
-    try:
-        raw = repo.get_config(db_con, "credentials_file")
-        if not raw:
-            log.error("No credentials_file in app_config")
-            return None
-        data = json.loads(raw)
-        installed = data.get("installed") or data.get("web", {})
-        return {
-            "client_id": installed.get("client_id"),
-            "client_secret": installed.get("client_secret"),
-        }
-    except (KeyError, json.JSONDecodeError) as e:
-        log.error("Failed to read credentials from DB: %s", e)
-        return None
+class OAuthManager:
+    """Manages OAuth 2.0 credentials with database storage."""
 
+    def __init__(self, client_secret_path: str, redirect_uri: str):
+        """Initialize OAuth manager.
 
-def get_authorization_url(client_config: dict, redirect_uri: str) -> str:
-    """Build Google OAuth authorization URL for browser redirect."""
-    params = {
-        "client_id": client_config["client_id"],
-        "redirect_uri": redirect_uri,
-        "response_type": "code",
-        "scope": " ".join(SCOPES),
-        "access_type": "offline",
-        "prompt": "consent",
-    }
-    return f"{AUTH_URL}?{urlencode(params)}"
+        client_secret_path: Path to Google OAuth client secret JSON
+        redirect_uri: OAuth callback URL (e.g., "http://localhost:8080/api/auth/callback")
+        """
+        self.client_secret_path = client_secret_path
+        self.redirect_uri = redirect_uri
 
+    def get_authorization_url(self) -> str:
+        """Generate OAuth 2.0 authorization URL.
 
-def exchange_code_for_tokens(
-    client_config: dict, code: str, redirect_uri: str
-) -> Optional[Credentials]:
-    """Exchange authorization code for OAuth credentials."""
-    with httpx.Client() as client:
-        resp = client.post(
-            TOKEN_URL,
-            data={
-                "client_id": client_config["client_id"],
-                "client_secret": client_config["client_secret"],
-                "code": code,
-                "redirect_uri": redirect_uri,
-                "grant_type": "authorization_code",
-            },
+        User should be redirected to this URL to grant consent.
+        """
+        flow = Flow.from_client_secrets_file(
+            self.client_secret_path, scopes=SCOPES, redirect_uri=self.redirect_uri
         )
-        data = resp.json()
-    if "access_token" not in data:
-        log.error("Token exchange failed: %s", data.get("error", "unknown"))
-        return None
-    return OAuth2Credentials(
-        token=data["access_token"],
-        refresh_token=data.get("refresh_token"),
-        token_uri=TOKEN_URL,
-        client_id=client_config["client_id"],
-        client_secret=client_config["client_secret"],
-        scopes=SCOPES,
-    )
+        auth_url, _ = flow.authorization_url(
+            access_type="offline", include_granted_scopes="true", prompt="consent"
+        )
+        return auth_url
 
+    def handle_callback(self, code: str) -> None:
+        """Exchange authorization code for tokens and save to DB.
 
-def save_credentials(db_con: sqlite3.Connection, credentials: Credentials) -> None:
-    blob = base64.b64encode(pickle.dumps(credentials)).decode("ascii")
-    repo.set_config(db_con, "credentials_pickle", blob)
+        code: Authorization code from OAuth callback query parameter
+        """
+        flow = Flow.from_client_secrets_file(
+            self.client_secret_path, scopes=SCOPES, redirect_uri=self.redirect_uri
+        )
+        flow.fetch_token(code=code)
+        credentials = flow.credentials
+        self.save_credentials(credentials)
+        log.info("OAuth credentials saved to database")
 
+    def save_credentials(self, credentials: Credentials) -> None:
+        """Save credentials to the oauth_credentials table."""
+        token_data = {
+            "token": credentials.token,
+            "refresh_token": credentials.refresh_token,
+            "token_uri": credentials.token_uri,
+            "client_id": credentials.client_id,
+            "client_secret": credentials.client_secret,
+            "scopes": credentials.scopes,
+        }
+        # Filter out None values to keep JSON clean
+        token_data = {k: v for k, v in token_data.items() if v is not None}
+        token_json = json.dumps(token_data)
 
-def load_credentials(db_con: sqlite3.Connection) -> Optional[Credentials]:
-    try:
-        raw = repo.get_config(db_con, "credentials_pickle")
-        if not raw:
-            log.debug("No credentials_pickle in app_config")
+        conn = get_connection()
+        conn.execute(
+            """
+            INSERT INTO oauth_credentials (id, token_json, created_at, updated_at)
+            VALUES (1, ?, datetime('now'), datetime('now'))
+            ON CONFLICT(id) DO UPDATE SET
+                token_json = excluded.token_json,
+                updated_at = datetime('now')
+        """,
+            (token_json,),
+        )
+        conn.commit()
+
+    def get_credentials(self) -> Credentials | None:
+        """Load credentials from the oauth_credentials table."""
+        conn = get_connection()
+        row = conn.execute(
+            "SELECT token_json FROM oauth_credentials WHERE id = 1"
+        ).fetchone()
+        if not row:
             return None
-        creds = pickle.loads(base64.b64decode(raw))
-        log.debug("Loaded credentials from DB")
-        return creds
-    except (pickle.UnpicklingError, EOFError, ValueError) as e:
-        log.warning("Failed to unpickle credentials from DB: %s", e)
-        return None
 
+        token_data = json.loads(row["token_json"])
+        credentials = Credentials(
+            token=token_data.get("token"),
+            refresh_token=token_data.get("refresh_token"),
+            token_uri=token_data.get("token_uri"),
+            client_id=token_data.get("client_id"),
+            client_secret=token_data.get("client_secret"),
+            scopes=token_data.get("scopes"),
+        )
+        return credentials
 
-def credentials_status(credentials: Optional[Credentials]) -> dict:
-    if credentials is None:
-        return {"authenticated": False}
-    if not credentials.valid:
+    def clear_credentials(self) -> None:
+        """Delete credentials from the database."""
+        conn = get_connection()
+        conn.execute("DELETE FROM oauth_credentials WHERE id = 1")
+        conn.commit()
+        log.info("OAuth credentials cleared from database")
+
+    def is_authenticated(self) -> bool:
+        """Check if valid credentials exist."""
+        credentials = self.get_credentials()
+        return credentials is not None
+
+    def get_http(self) -> AuthorizedSession:
+        """Get an AuthorizedSession with auto-refresh.
+
+        Raises RuntimeError if not authenticated.
+        """
+        credentials = self.get_credentials()
+        if credentials is None:
+            raise RuntimeError("not authenticated: call handle_callback() first")
+
+        # Refresh if expired
         if credentials.expired and credentials.refresh_token:
-            try:
-                credentials.refresh(Request())
-                return {
-                    "authenticated": True,
-                    "expires_at": str(credentials.expiry)
-                    if credentials.expiry
-                    else None,
-                }
-            except Exception:
-                return {"authenticated": False}
-        return {"authenticated": False}
-    return {
-        "authenticated": True,
-        "expires_at": str(credentials.expiry) if credentials.expiry else None,
-    }
+            credentials.refresh(Request())
+            self.save_credentials(credentials)
+            log.info("OAuth token refreshed")
+
+        return AuthorizedSession(credentials)
