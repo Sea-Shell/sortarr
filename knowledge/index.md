@@ -4,7 +4,7 @@ title: Sortarr Knowledge Bundle
 description: Root index for the sortarr OKF knowledge bundle. Start here, then follow links into concepts/ one level at a time.
 resource: https://github.com/Sea-Shell/sortarr
 tags: [sortarr, index, okf]
-timestamp: 2026-06-24T10:00:00Z
+timestamp: 2026-07-12T12:00:00Z
 ---
 
 # Sortarr Knowledge Bundle
@@ -22,11 +22,11 @@ instead of re-reading the codebase each session.
 
 See [concepts/](/knowledge/concepts/index.md) for the full list. Quick links:
 
-- [Architecture](/knowledge/concepts/architecture.md) — module layout and request/run flow
+- [Architecture](/knowledge/concepts/architecture.md) — v2 module layout, request/run flow, and v1→v2 diff
 - [Runtime Configuration](/knowledge/concepts/runtime-config.md) — `SORTARR_*` env vars + DB-backed config
-- [Pipeline](/knowledge/concepts/pipeline.md) — the two-phase orchestrator that routes videos
-- [Filters](/knowledge/concepts/filters.md) — ignore lists, word, selector, title-similarity
-- [Database](/knowledge/concepts/database.md) — SQLite schema, migrations, repository layer
+- [Pipeline](/knowledge/concepts/pipeline.md) — the runner that routes videos via cheap filters → shared enrichment → duration filters
+- [Filters](/knowledge/concepts/filters.md) — word, ignore-list, title-similarity, selector, db-exists, duration
+- [Database](/knowledge/concepts/database.md) — SQLite WAL schema, migrations, repository layer
 - [HTTP API](/knowledge/concepts/api.md) — FastAPI app factory, routes, dependencies
 - [Auth](/knowledge/concepts/auth.md) — Google OAuth device + browser flow
 - [Scheduler](/knowledge/concepts/scheduler.md) — APScheduler cron-driven runs

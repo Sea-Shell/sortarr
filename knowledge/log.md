@@ -4,7 +4,7 @@ title: Sortarr Knowledge Bundle — Change Log
 description: Chronological record of changes to the knowledge/ OKF bundle. Append one line per change; newest at top.
 resource: https://github.com/Sea-Shell/sortarr
 tags: [sortarr, log, okf, changelog]
-timestamp: 2026-07-12T22:30:00Z
+timestamp: 2026-07-12T23:00:00Z
 ---
 
 # Change Log
@@ -12,6 +12,12 @@ timestamp: 2026-07-12T22:30:00Z
 Append a one-line entry whenever you add, edit, or remove a concept doc.
 Format: `- YYYY-MM-DD — <doc(s) touched> — <what changed and why>`
 
+- 2026-07-12 — pipeline.md — added Preview Modes section documenting mock preview (generates synthetic test activities per filter rule + baseline) and cache preview (runs filters on cached data), both with zero quota cost. Includes implementation details, mock types, acceptance criteria, and API endpoints.
+- 2026-07-12 — pipeline.md — rewrote for v2 Runner: documented 8-step run flow (startup cleanup, concurrency guard, subscription/activity fetching, cheap filters, batch enrichment, duration filters, inserts, watermarks, cache pruning), quota guard thresholds, error handling, and quota budget.
+- 2026-07-12 — database.md — added Config, Videos, Runs, and Subscriptions repository sections documenting all CRUD operations, schema mappings, and OAuth credential migration from pickle to DB.
+- 2026-07-12 — database.md — added Pipelines Repository section documenting pipelines.py operations (create_pipeline, get_pipeline, list_pipelines, update_pipeline, delete_pipeline, reorder_pipelines), junction table helpers (set/get ignore_lists, selectors, subscriptions), schema mapping (playlist_id ↔ destination_playlist_id), and cascade delete behavior.
+
+- 2026-07-12 — database.md — added Activity Cache Repository section documenting activities.py operations (upsert_activities, get_activities, get_cached_duration, update_duration, prune_old_entries, get_cache_stats), schema mapping (activity_type ↔ video_type), and idempotency guarantee.
 - 2026-07-12 — auth.md — updated for DB-backed OAuth credentials (token_json in oauth_credentials table), removed pickle file references, documented OAuthManager flow with auto-refresh.
 - 2026-07-12 — api.md — added YouTube API Client section documenting YouTubeAPIClient contract, methods, quota tracking, token refresh, and testing.
 - 2026-06-24 — bundle created — initial OKF bundle: architecture, runtime-config, pipeline, filters, database, api, auth, scheduler, dev-workflow.
