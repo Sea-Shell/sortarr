@@ -23,3 +23,5 @@ Format: `- YYYY-MM-DD — <doc(s) touched> — <what changed and why>`
 - 2026-07-11 — api.md — updated subscriptions endpoint to sync-then-serve pattern (YouTube API → DB fallback).
 - 2026-07-12 — pipeline.md — documented restored per-subscription tracking narrowing in _compute_published_after (max() of reprocess_days ceiling and min_tracking_ts).
 - 2026-07-12 — api.md — activity endpoint now falls back to activity_cache when YouTube API is unavailable.
+- 2026-07-12 — architecture.md, index.md — v2 greenfield skeleton: deleted all v1 files, created new module layout with stubs. Added v1→v2 diff table and updated flow descriptions.
+- 2026-07-12 — database.md — added connection lifecycle (init_db/get_connection/close_db/connection_ctx), WAL mode, foreign keys, and pragma table.

@@ -1,17 +1,17 @@
 ---
 type: Datastore
 title: Sortarr Database
-description: SQLite persistence — connection handling, auto-run migrations, the table schema, and the repository layer that wraps all queries.
+description: SQLite persistence — connection handling with WAL mode and foreign keys, auto-run migrations, the table schema, and the repository layer that wraps all queries.
 resource: https://github.com/Sea-Shell/sortarr/tree/main/src/sortarr/db
-tags: [sortarr, database, sqlite, persistence]
-timestamp: 2026-06-24T12:00:00Z
+tags: [sortarr, database, sqlite, persistence, wal, foreign-keys]
+timestamp: 2026-07-12T12:00:00Z
 ---
 
 # Layout
 
 ```
 src/sortarr/db/
-├── connection.py   # opens the sqlite3 Connection (god node, 56 edges)
+├── connection.py   # SQLite connection management (WAL mode, foreign keys)
 ├── migrations.py   # schema DDL, auto-run on startup
 └── repository/
     ├── config.py        # runtime config key/values
@@ -20,6 +20,32 @@ src/sortarr/db/
     ├── pipeline_runs.py # run history + decisions
     └── videos.py        # activity cache + routed-video records
 ```
+
+# Connection lifecycle
+
+`connection.py` manages a single module-level `sqlite3.Connection` with
+three functions called from the [FastAPI lifespan](/knowledge/concepts/api.md):
+
+| Function       | When called        | What it does                                        |
+| -------------- | ------------------ | --------------------------------------------------- |
+| `init_db(path)` | App startup        | Opens connection, sets WAL mode + foreign keys + busy timeout |
+| `get_connection()` | Any time       | Returns the connection; raises `RuntimeError` if not initialized |
+| `close_db()`    | App shutdown       | Closes the connection cleanly                       |
+
+A `connection_ctx()` context manager provides transactional semantics:
+commit on success, rollback on exception.
+
+# Pragmas
+
+| Pragma               | Value  | Why                                                          |
+| -------------------- | ------ | ------------------------------------------------------------ |
+| `journal_mode`       | `WAL`  | Concurrent readers during writes; better throughput           |
+| `foreign_keys`       | `ON`   | Enforces referential integrity (off by default in sqlite3)   |
+| `busy_timeout`       | `5000` | Wait up to 5 seconds on lock contention before failing       |
+| `row_factory`        | `sqlite3.Row` | Dict-like column access (`row["title"]`) instead of positional |
+
+WAL mode requires a file-backed database — `:memory:` databases always use the
+`memory` journal and silently ignore the WAL pragma.
 
 The DB path is `SORTARR_DATABASE_FILE` (default `sortarr.db`) — see
 [runtime config](/knowledge/concepts/runtime-config.md).
