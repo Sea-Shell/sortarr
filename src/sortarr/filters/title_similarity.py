@@ -43,18 +43,24 @@ def _levenshtein(a: str, b: str) -> int:
     return prev[len(b)]
 
 
-def _fuzz_ratio(a: str, b: str) -> int:
-    """Similarity ratio (0–100) between two strings using Levenshtein."""
+def _fuzz_ratio(a: str, b: str, max_len: int = 500) -> int:
+    """Similarity ratio (0–100) between two strings using Levenshtein.
+    
+    Strings longer than max_len are truncated to prevent O(n*m) explosion.
+    """
     if not a or not b:
         return 0
     na, nb = _normalize(a), _normalize(b)
     if not na or not nb:
         return 0
-    max_len = max(len(na), len(nb))
-    if max_len == 0:
+    # Truncate to prevent blocking computation
+    na = na[:max_len]
+    nb = nb[:max_len]
+    max_len_actual = max(len(na), len(nb))
+    if max_len_actual == 0:
         return 0
     dist = _levenshtein(na, nb)
-    return int((1 - dist / max_len) * 100)
+    return int((1 - dist / max_len_actual) * 100)
 
 
 def check_title_similarity(

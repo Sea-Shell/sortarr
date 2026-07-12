@@ -261,6 +261,27 @@ class TestTitleSimilarityFilter:
         act = _act(title="")
         assert check_title_similarity(act, pipeline, ctx) is None
 
+    def test_long_title_truncation_performance(self, pipeline):
+        """Long titles are truncated to prevent O(n*m) explosion."""
+        import time
+
+        # 5000-char title
+        long_title = "a" * 5000
+        ctx = {
+            "recent_videos": [{"video_id": "v1", "title": "b" * 5000}],  # Also 5000 chars, totally different
+            "compare_distance": 80,
+        }
+        act = _act(title=long_title, video_id="new_video")
+
+        start = time.time()
+        result = check_title_similarity(act, pipeline, ctx)
+        elapsed = time.time() - start
+
+        # Should complete in under 100ms (not 3+ seconds)
+        assert elapsed < 0.1, f"title_similarity took {elapsed:.2f}s — should be <0.1s with truncation"
+        # Should pass (titles are different even after truncation)
+        assert result is None  # None = passed
+
 
 # ===========================================================================
 # Selector Filter
@@ -378,6 +399,25 @@ class TestSelectorFilter:
         }
         act = _act(description="About something interesting")
         assert check_selectors(act, pipeline, ctx) is None
+
+    def test_regex_nested_quantifiers_rejected(self, pipeline):
+        """Nested quantifiers are rejected to prevent ReDoS attacks."""
+        ctx = {
+            "selectors": [
+                {
+                    "field": "title",
+                    "operator": "regex",
+                    "pattern": r"(a+)+b",  # nested quantifiers — potential ReDoS
+                }
+            ]
+        }
+        pipeline.selector_mode = "AND"
+        act = _act(title="a" * 30 + "X")  # No 'b' at end
+        result = check_selectors(act, pipeline, ctx)
+        # Should return FilterResult(passed=False) due to pattern rejection
+        assert result is not None
+        assert not result.passed
+        assert "not matched" in result.reason.lower()
 
 
 # ===========================================================================

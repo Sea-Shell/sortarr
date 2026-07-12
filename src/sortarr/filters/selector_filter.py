@@ -35,7 +35,19 @@ def _apply_operator(field_value: str, operator: str, pattern: str) -> bool:
     elif operator == "ends_with":
         return fv.endswith(pv)
     elif operator == "regex":
-        return bool(re.search(pattern, field_value, re.IGNORECASE))
+        # Guard against catastrophic backtracking by limiting pattern complexity
+        # Reject patterns with nested quantifiers like (a+)+ which can cause ReDoS
+        if re.search(r'(\(.*[+*]\)|\[.*\])[+*{]', pattern):
+            log.warning(
+                "regex pattern %r rejected: nested quantifiers detected (potential ReDoS) — treating as no-match",
+                pattern,
+            )
+            return False
+        try:
+            return bool(re.search(pattern, field_value, re.IGNORECASE))
+        except re.error as e:
+            log.warning("regex pattern %r is invalid: %s — treating as no-match", pattern, e)
+            return False
     else:
         log.warning("unknown selector operator %r — treating as no-match", operator)
         return False

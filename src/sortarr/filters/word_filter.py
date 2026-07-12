@@ -35,7 +35,7 @@ def check_word_filter(
         return None
 
     for word in words:
-        if word.lower() in title:
+        if word in title:  # word is already lowercase from context
             log.debug(
                 "word_filter hit: title=%r contains word=%r",
                 activity.get("title"),
