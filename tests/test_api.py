@@ -6,111 +6,24 @@ from httpx import ASGITransport, AsyncClient
 @pytest.fixture
 def app():
     from sortarr.api.app import create_app
+    from sortarr.db.connection import init_db as init_db_connection
+    from sortarr.db.migrations import init_db
 
     app = create_app()
     from sortarr.api.app import AppState
 
     state = AppState()
     app.state.sortarr = state
-    state.db_con = sqlite3.connect(":memory:")
-    state.db_con.row_factory = sqlite3.Row
-    state.db_con.executescript("""
-        CREATE TABLE IF NOT EXISTS videos (
-            videoId TEXT NOT NULL PRIMARY KEY,
-            timestamp TEXT,
-            title TEXT,
-            subscriptionId TEXT,
-            playlistId TEXT,
-            duration_seconds INTEGER,
-            route_rule TEXT
-        );
-        CREATE TABLE IF NOT EXISTS channel (
-            id TEXT NOT NULL PRIMARY KEY,
-            title TEXT
-        );
-        CREATE TABLE IF NOT EXISTS playlist (
-            id TEXT NOT NULL PRIMARY KEY,
-            title TEXT
-        );
-        CREATE TABLE IF NOT EXISTS subscription (
-            id TEXT NOT NULL PRIMARY KEY,
-            title TEXT,
-            timestamp TEXT
-        );
-        CREATE TABLE IF NOT EXISTS last_run (
-            id NUMBER NOT NULL PRIMARY KEY,
-            timestamp TEXT
-        );
-        CREATE TABLE IF NOT EXISTS routing_rules (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            priority INTEGER NOT NULL DEFAULT 0,
-            field TEXT,
-            operator TEXT NOT NULL DEFAULT 'contains',
-            pattern TEXT,
-            destination_playlist_id TEXT NOT NULL,
-            destination_playlist_title TEXT,
-            enabled INTEGER NOT NULL DEFAULT 1,
-            minimum_length TEXT NOT NULL DEFAULT '0s',
-            maximum_length TEXT NOT NULL DEFAULT '0s',
-            catch_all INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS pipeline_runs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            started_at TEXT NOT NULL,
-            finished_at TEXT,
-            status TEXT NOT NULL DEFAULT 'running',
-            subscriptions_processed INTEGER DEFAULT 0,
-            subscriptions_skipped INTEGER DEFAULT 0,
-            videos_added INTEGER DEFAULT 0,
-            videos_skipped INTEGER DEFAULT 0,
-            errors INTEGER DEFAULT 0,
-            error_message TEXT,
-            trigger TEXT DEFAULT 'scheduled'
-        );
-        CREATE TABLE IF NOT EXISTS app_config (
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS pipelines (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            enabled INTEGER NOT NULL DEFAULT 1,
-            selector_mode TEXT NOT NULL DEFAULT 'AND',
-            duration_min_seconds INTEGER NOT NULL DEFAULT 0,
-            duration_max_seconds INTEGER NOT NULL DEFAULT 0,
-            check_db_exists INTEGER NOT NULL DEFAULT 0,
-            check_title_similarity INTEGER NOT NULL DEFAULT 0,
-            compare_distance INTEGER NOT NULL DEFAULT 80,
-            subscription_scope TEXT NOT NULL DEFAULT 'all',
-            destination_playlist_id TEXT NOT NULL,
-            destination_playlist_title TEXT NOT NULL,
-            sort_order INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS pipeline_selectors (
-            id TEXT PRIMARY KEY,
-            pipeline_id TEXT NOT NULL REFERENCES pipelines(id) ON DELETE CASCADE,
-            field TEXT NOT NULL,
-            operator TEXT NOT NULL,
-            pattern TEXT NOT NULL,
-            combine_operator TEXT NOT NULL DEFAULT 'AND',
-            created_at TEXT NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS pipeline_subscriptions (
-            pipeline_id TEXT NOT NULL REFERENCES pipelines(id) ON DELETE CASCADE,
-            subscription_id TEXT NOT NULL,
-            PRIMARY KEY (pipeline_id, subscription_id)
-        );
-        CREATE TABLE IF NOT EXISTS pipeline_ignore_lists (
-            pipeline_id TEXT NOT NULL REFERENCES pipelines(id) ON DELETE CASCADE,
-            ignore_list_id TEXT NOT NULL,
-            PRIMARY KEY (pipeline_id, ignore_list_id)
-        );
-    """)
+    
+    # Create in-memory database and initialize schema
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    init_db(conn)
+    
+    # Initialize the global connection for repository functions
+    init_db_connection(":memory:")
+    
+    state.db_con = conn
     return app
 
 

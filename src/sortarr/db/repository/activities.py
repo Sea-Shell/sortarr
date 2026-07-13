@@ -154,4 +154,3 @@ def get_cache_stats() -> dict:
         "oldest": row["oldest"],
         "newest": row["newest"],
     }
-

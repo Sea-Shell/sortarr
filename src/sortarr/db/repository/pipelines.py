@@ -26,7 +26,7 @@ def create_pipeline(config: PipelineCreate) -> PipelineConfig:
     # Validate playlist_id
     if not config.playlist_id or not config.playlist_id.strip():
         raise ValueError("playlist_id is required and cannot be empty")
-    
+
     pipeline_id = str(uuid.uuid4())
     conn = get_connection()
 
@@ -228,14 +228,14 @@ def set_selectors(pipeline_id: str, selector_ids: list[str]) -> None:
     Note: Selector CRUD is not yet implemented in Phase 3-4.
     """
     conn = get_connection()
-    
+
     # Raise error if trying to add selectors
     if selector_ids:
         raise NotImplementedError(
             "Selector CRUD is not implemented. "
             "Use ignore lists for filtering in Phase 3-4."
         )
-    
+
     # Allow clearing selectors
     conn.execute("DELETE FROM pipeline_selectors WHERE pipeline_id = ?", (pipeline_id,))
 

@@ -33,7 +33,9 @@ def handle_shutdown(signum: int, frame) -> None:
 def main() -> None:
     """Main entry point for sortarr v2."""
     # Parse command-line arguments
-    parser = argparse.ArgumentParser(description="sortarr v2 - YouTube playlist automation")
+    parser = argparse.ArgumentParser(
+        description="sortarr v2 - YouTube playlist automation"
+    )
     parser.add_argument(
         "--host",
         default="0.0.0.0",

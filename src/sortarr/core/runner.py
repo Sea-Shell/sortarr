@@ -28,7 +28,14 @@ from typing import TYPE_CHECKING
 
 from sortarr.core.enricher import Enricher
 from sortarr.core.filters import FilterChain
-from sortarr.db.repository import activities, config, pipelines, runs, subscriptions, videos
+from sortarr.db.repository import (
+    activities,
+    config,
+    pipelines,
+    runs,
+    subscriptions,
+    videos,
+)
 from sortarr.metrics import (
     sortarr_quota_used_today,
     sortarr_run_duration_seconds,
@@ -84,6 +91,7 @@ class Runner:
 
         # Record run start time for duration metric
         import time
+
         start_time = time.time()
 
         # Step 0: Startup cleanup (crash recovery)
@@ -136,9 +144,8 @@ class Runner:
             )
             for sub in subs_to_fetch:
                 tracking = subscriptions.get_tracking(sub.subscription_id)
-                published_after = (
-                    self.published_after
-                    or (tracking.get("last_fetched_at") if tracking else None)
+                published_after = self.published_after or (
+                    tracking.get("last_fetched_at") if tracking else None
                 )
                 if not published_after:
                     # Default: reprocess_days back
@@ -221,9 +228,11 @@ class Runner:
             )
             duration_map, failed_ids = enricher.batch_fetch(unique_video_ids)
             run_summary.videos_enriched = len(duration_map)
-            
+
             if failed_ids:
-                log.warning("failed to enrich %d videos: %s", len(failed_ids), failed_ids[:10])
+                log.warning(
+                    "failed to enrich %d videos: %s", len(failed_ids), failed_ids[:10]
+                )
 
             # Update activity_cache with durations
             for video_id, duration in duration_map.items():
@@ -264,22 +273,24 @@ class Runner:
                 conn = get_connection()
                 conn.execute("DELETE FROM app_config WHERE key = 'run_active'")
                 conn.commit()
-                
+
                 # Record metrics for quota-blocked run
                 duration = time.time() - start_time
                 sortarr_runs_total.labels(trigger=run_summary.trigger).inc()
                 sortarr_quota_used_today.set(quota_used)
                 sortarr_run_duration_seconds.observe(duration)
-                
+
                 return run_id
 
             # Step 11: Run duration filters and insert
             for pipeline in pipeline_configs:
                 survivors = survivors_per_pipeline[pipeline.id]
-                
+
                 # Defensive check: skip pipeline if no playlist_id
                 if not pipeline.playlist_id:
-                    log.error("pipeline %s has no playlist_id — skipping inserts", pipeline.id)
+                    log.error(
+                        "pipeline %s has no playlist_id — skipping inserts", pipeline.id
+                    )
                     run_summary.videos_skipped += len(survivors)
                     continue
 
@@ -403,9 +414,7 @@ class Runner:
             conn.execute("DELETE FROM app_config WHERE key = 'run_active'")
             conn.commit()
 
-    def _fetch_all_subscriptions(
-        self, http: AuthorizedSession
-    ) -> list[Subscription]:
+    def _fetch_all_subscriptions(self, http: AuthorizedSession) -> list[Subscription]:
         """Fetch all subscriptions with pagination."""
         subs: list[Subscription] = []
         page_token: str | None = None
@@ -550,4 +559,3 @@ class Runner:
         context["inserted_video_ids"] = {row["video_id"] for row in rows}
 
         return context
-

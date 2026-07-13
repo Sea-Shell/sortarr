@@ -223,9 +223,10 @@ class TestEnricherBatching:
             return {"items": []}
 
         enricher = Enricher(fake_api)
-        result = enricher.batch_fetch(set())
+        result, failed = enricher.batch_fetch(set())
         assert calls == []
         assert result == {}
+        assert failed == []
 
 
 class TestEnricherParsing:
@@ -234,24 +235,27 @@ class TestEnricherParsing:
             return {"items": [_video_item("a", "PT5M"), _video_item("b", "PT1H30M")]}
 
         enricher = Enricher(fake_api)
-        result = enricher.batch_fetch({"a", "b"})
+        result, failed = enricher.batch_fetch({"a", "b"})
         assert result == {"a": 300, "b": 5400}
+        assert failed == []
 
     def test_skips_items_without_duration(self) -> None:
         def fake_api(ids_csv: str) -> dict:
             return {"items": [_video_item("a", "PT5M"), {"id": "b"}]}
 
         enricher = Enricher(fake_api)
-        result = enricher.batch_fetch({"a", "b"})
+        result, failed = enricher.batch_fetch({"a", "b"})
         assert result == {"a": 300}
+        assert failed == []
 
     def test_skips_unparseable_duration(self) -> None:
         def fake_api(ids_csv: str) -> dict:
             return {"items": [_video_item("a", "PT5M"), _video_item("b", "INVALID")]}
 
         enricher = Enricher(fake_api)
-        result = enricher.batch_fetch({"a", "b"})
+        result, failed = enricher.batch_fetch({"a", "b"})
         assert result == {"a": 300}
+        assert failed == []
 
 
 class TestEnricherErrorHandling:
@@ -267,23 +271,26 @@ class TestEnricherErrorHandling:
 
         enricher = Enricher(flaky_api)
         ids = {"ok", *[f"bad{i}" for i in range(50)]}
-        result = enricher.batch_fetch(ids)
+        result, failed = enricher.batch_fetch(ids)
         assert "ok" in result
         assert result["ok"] == 120
+        assert len(failed) == 50  # The first batch failed
 
     def test_total_api_failure_returns_empty(self) -> None:
         def boom(ids_csv: str) -> dict:
             raise RuntimeError("down")
 
         enricher = Enricher(boom)
-        result = enricher.batch_fetch({"a", "b"})
+        result, failed = enricher.batch_fetch({"a", "b"})
         assert result == {}
+        assert len(failed) == 2
 
     def test_exception_does_not_crash_enricher(self) -> None:
         def always_fail(ids_csv: str) -> dict:
             raise ValueError("bad request")
 
         enricher = Enricher(always_fail)
-        result = enricher.batch_fetch({f"v{i}" for i in range(200)})
+        result, failed = enricher.batch_fetch({f"v{i}" for i in range(200)})
         assert isinstance(result, dict)
         assert result == {}
+        assert len(failed) == 200  # All batches failed

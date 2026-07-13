@@ -13,7 +13,8 @@ log = logging.getLogger("sortarr.db.repository.runs")
 def create_run(run_summary: RunSummary) -> int:
     """Create a new run record. Returns the run ID."""
     conn = get_connection()
-    cursor = conn.execute("""
+    cursor = conn.execute(
+        """
         INSERT INTO pipeline_runs (
             status, trigger, started_at, finished_at,
             subscriptions_processed, subscriptions_skipped,
@@ -21,14 +22,22 @@ def create_run(run_summary: RunSummary) -> int:
             videos_after_duration_filters, videos_inserted,
             quota_used, error_message
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        run_summary.status, run_summary.trigger, run_summary.started_at,
-        run_summary.completed_at,  # Model has completed_at, schema has finished_at
-        run_summary.subscriptions_fetched, 0,  # subscriptions_skipped not in model
-        run_summary.activities_collected, 0, 0,  # cheap/duration not in model
-        run_summary.videos_inserted, run_summary.quota_used,
-        run_summary.error_message
-    ))
+    """,
+        (
+            run_summary.status,
+            run_summary.trigger,
+            run_summary.started_at,
+            run_summary.completed_at,  # Model has completed_at, schema has finished_at
+            run_summary.subscriptions_fetched,
+            0,  # subscriptions_skipped not in model
+            run_summary.activities_collected,
+            0,
+            0,  # cheap/duration not in model
+            run_summary.videos_inserted,
+            run_summary.quota_used,
+            run_summary.error_message,
+        ),
+    )
     conn.commit()
     return cursor.lastrowid or 0
 
@@ -38,11 +47,11 @@ def update_run(run_id: int, updates: dict) -> None:
     conn = get_connection()
     fields = []
     values = []
-    
+
     for key, value in updates.items():
         fields.append(f"{key} = ?")
         values.append(value)
-    
+
     if fields:
         values.append(run_id)
         query = f"UPDATE pipeline_runs SET {', '.join(fields)} WHERE id = ?"
@@ -53,18 +62,21 @@ def update_run(run_id: int, updates: dict) -> None:
 def get_run(run_id: int) -> RunSummaryResponse | None:
     """Get a run by ID."""
     conn = get_connection()
-    row = conn.execute("""
+    row = conn.execute(
+        """
         SELECT id, status, trigger, started_at, finished_at,
                subscriptions_processed, videos_collected,
                videos_after_cheap_filters, videos_after_duration_filters,
                videos_inserted, quota_used, error_message
         FROM pipeline_runs
         WHERE id = ?
-    """, (run_id,)).fetchone()
-    
+    """,
+        (run_id,),
+    ).fetchone()
+
     if not row:
         return None
-    
+
     return RunSummaryResponse(
         id=str(row["id"]),
         status=row["status"],
@@ -77,14 +89,15 @@ def get_run(run_id: int) -> RunSummaryResponse | None:
         videos_inserted=row["videos_inserted"],
         videos_skipped=0,  # Not tracked in schema
         quota_used=row["quota_used"],
-        error_message=row["error_message"]
+        error_message=row["error_message"],
     )
 
 
 def list_runs(limit: int = 50) -> list[RunSummaryResponse]:
     """List recent runs."""
     conn = get_connection()
-    rows = conn.execute("""
+    rows = conn.execute(
+        """
         SELECT id, status, trigger, started_at, finished_at,
                subscriptions_processed, videos_collected,
                videos_after_cheap_filters, videos_after_duration_filters,
@@ -92,8 +105,10 @@ def list_runs(limit: int = 50) -> list[RunSummaryResponse]:
         FROM pipeline_runs
         ORDER BY started_at DESC
         LIMIT ?
-    """, (limit,)).fetchall()
-    
+    """,
+        (limit,),
+    ).fetchall()
+
     return [
         RunSummaryResponse(
             id=str(row["id"]),
@@ -107,7 +122,7 @@ def list_runs(limit: int = 50) -> list[RunSummaryResponse]:
             videos_inserted=row["videos_inserted"],
             videos_skipped=0,
             quota_used=row["quota_used"],
-            error_message=row["error_message"]
+            error_message=row["error_message"],
         )
         for row in rows
     ]
@@ -117,35 +132,46 @@ def add_decisions(run_id: int, decisions: list[dict]) -> None:
     """Add run decisions (batch insert)."""
     if not decisions:
         return
-    
+
     conn = get_connection()
-    conn.executemany("""
+    conn.executemany(
+        """
         INSERT INTO run_decisions (
             run_id, video_id, pipeline_id, action,
             filter_stage, filter_name, reason, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-    """, [
-        (
-            run_id, d["video_id"], d.get("pipeline_id"), d["action"],
-            d.get("filter_stage"), d.get("filter_name"), d.get("reason")
-        )
-        for d in decisions
-    ])
+    """,
+        [
+            (
+                run_id,
+                d["video_id"],
+                d.get("pipeline_id"),
+                d["action"],
+                d.get("filter_stage"),
+                d.get("filter_name"),
+                d.get("reason"),
+            )
+            for d in decisions
+        ],
+    )
     conn.commit()
 
 
 def get_decisions(run_id: int, limit: int = 500) -> list[RunDecisionResponse]:
     """Get decisions for a run."""
     conn = get_connection()
-    rows = conn.execute("""
+    rows = conn.execute(
+        """
         SELECT run_id, pipeline_id, video_id, action,
                filter_stage, filter_name, reason
         FROM run_decisions
         WHERE run_id = ?
         ORDER BY id
         LIMIT ?
-    """, (run_id, limit)).fetchall()
-    
+    """,
+        (run_id, limit),
+    ).fetchall()
+
     return [
         RunDecisionResponse(
             run_id=str(row["run_id"]),
@@ -154,8 +180,7 @@ def get_decisions(run_id: int, limit: int = 500) -> list[RunDecisionResponse]:
             action=row["action"],
             filter_stage=row["filter_stage"],
             filter_name=row["filter_name"],
-            reason=row["reason"]
+            reason=row["reason"],
         )
         for row in rows
     ]
-

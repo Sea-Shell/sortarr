@@ -15,6 +15,7 @@ log = logging.getLogger("sortarr.filters.title_similarity")
 def _normalize(text: str) -> str:
     """Lowercase and collapse non-alphanumeric runs to single spaces."""
     import re
+
     return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
 
 
@@ -34,9 +35,9 @@ def _levenshtein(a: str, b: str) -> int:
         for j, cb in enumerate(b):
             cost = 0 if ca == cb else 1
             curr[j + 1] = min(
-                prev[j + 1] + 1,      # deletion
-                curr[j] + 1,           # insertion
-                prev[j] + cost,        # substitution
+                prev[j + 1] + 1,  # deletion
+                curr[j] + 1,  # insertion
+                prev[j] + cost,  # substitution
             )
         prev, curr = curr, prev
 
@@ -45,7 +46,7 @@ def _levenshtein(a: str, b: str) -> int:
 
 def _fuzz_ratio(a: str, b: str, max_len: int = 500) -> int:
     """Similarity ratio (0–100) between two strings using Levenshtein.
-    
+
     Strings longer than max_len are truncated to prevent O(n*m) explosion.
     """
     if not a or not b:

@@ -20,10 +20,13 @@ def get_config() -> dict[str, str]:
 def set_config(key: str, value: str) -> None:
     """Set a config key-value pair."""
     conn = get_connection()
-    conn.execute("""
+    conn.execute(
+        """
         INSERT INTO app_config (key, value) VALUES (?, ?)
         ON CONFLICT(key) DO UPDATE SET value = excluded.value
-    """, (key, value))
+    """,
+        (key, value),
+    )
     conn.commit()
 
 

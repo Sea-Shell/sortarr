@@ -13,7 +13,9 @@ from sortarr.db.migrations import init_db
 def db_path() -> Iterator[str]:
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
         path = f.name
-    init_db(path)
+    conn = sqlite3.connect(path)
+    init_db(conn)
+    conn.close()
     yield path
     os.unlink(path)
 
@@ -33,7 +35,6 @@ def app(db_path: str) -> FastAPI:
     from sortarr.api.routes import (
         health,
         config,
-        rules,
         pipeline as pipeline_routes,
         pipelines as pipelines_routes,
     )
@@ -41,15 +42,15 @@ def app(db_path: str) -> FastAPI:
     state = AppState()
     s = Settings(database_file=db_path)
     state.settings = s
-    init_db(s.database_file)
-    state.db_con = sqlite3.connect(s.database_file)
-    state.db_con.row_factory = sqlite3.Row
+    conn = sqlite3.connect(s.database_file)
+    init_db(conn)
+    conn.row_factory = sqlite3.Row
+    state.db_con = conn
 
     app = FastAPI()
     app.state.sortarr = state
     app.include_router(health.router, prefix="/api")
     app.include_router(config.router, prefix="/api")
-    app.include_router(rules.router, prefix="/api")
     app.include_router(pipelines_routes.router, prefix="/api")
     app.include_router(pipeline_routes.router, prefix="/api")
     return app
@@ -359,18 +360,22 @@ def test_overlay_warns_on_invalid_key(tmp_path):
     import logging
     from sortarr.api.app import AppState
     from sortarr.config import Settings
-    from sortarr.db import repository as repo
+    from sortarr.db.repository import config as repo_config
+    from sortarr.db.connection import init_db as init_db_connection
 
     db_path = tmp_path / "testsettings.db"
-    init_db(str(db_path))
     s = Settings(database_file=str(db_path))
     con = sqlite3.connect(str(db_path))
+    init_db(con)
     con.row_factory = sqlite3.Row
     con.execute(
         "INSERT INTO app_config (key, value) VALUES (?, ?)",
         ("totally_wrong_keyz", "oops"),
     )
     con.commit()
+    # Initialize the global connection so repo functions work
+    init_db_connection(str(db_path))
+    
     state = AppState()
     state.settings = s
     state.db_con = con
@@ -387,7 +392,7 @@ def test_overlay_warns_on_invalid_key(tmp_path):
     # Run overlay part: mimic overlay loop
     # Should not crash, should log warning if it cannot set
     for key in ["totally_wrong_keyz", *vars(s).keys()]:
-        db_val = repo.get_config(con, key)
+        db_val = repo_config.get_config_value(key)
         if db_val is not None and hasattr(s, key):
             try:
                 val = getattr(s, key)

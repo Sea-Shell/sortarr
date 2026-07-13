@@ -12,9 +12,7 @@ from typing import Any
 log = logging.getLogger("sortarr.core.enricher")
 
 # ISO 8601 duration regex — covers PnD, Th, Tm, Ts with optional fractional seconds
-DURATION_RE = re.compile(
-    r"^P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$"
-)
+DURATION_RE = re.compile(r"^P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$")
 
 
 def parse_iso8601_duration(duration_str: str) -> int | None:

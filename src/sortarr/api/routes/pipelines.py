@@ -37,7 +37,9 @@ async def get_pipelines():
         return list_pipelines()
     except Exception as e:
         log.error("failed to list pipelines: %s", e, exc_info=True)
-        raise HTTPException(status_code=500, detail=f"failed to list pipelines: {e}") from e
+        raise HTTPException(
+            status_code=500, detail=f"failed to list pipelines: {e}"
+        ) from e
 
 
 @router.post("", response_model=PipelineResponse, status_code=201)
@@ -78,7 +80,9 @@ async def create_pipeline_route(pipeline: PipelineCreate):
         raise HTTPException(status_code=501, detail=str(e)) from e
     except Exception as e:
         log.error("failed to create pipeline: %s", e, exc_info=True)
-        raise HTTPException(status_code=500, detail=f"failed to create pipeline: {e}") from e
+        raise HTTPException(
+            status_code=500, detail=f"failed to create pipeline: {e}"
+        ) from e
 
 
 @router.put("/reorder", status_code=204)
@@ -93,7 +97,9 @@ async def reorder_pipelines_route(request: ReorderRequest):
         return Response(status_code=204)
     except Exception as e:
         log.error("failed to reorder pipelines: %s", e, exc_info=True)
-        raise HTTPException(status_code=500, detail=f"failed to reorder pipelines: {e}") from e
+        raise HTTPException(
+            status_code=500, detail=f"failed to reorder pipelines: {e}"
+        ) from e
 
 
 @router.get("/{pipeline_id}", response_model=PipelineResponse)
@@ -129,7 +135,9 @@ async def get_pipeline_by_id(pipeline_id: str):
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         log.error("failed to get pipeline %s: %s", pipeline_id, e, exc_info=True)
-        raise HTTPException(status_code=500, detail=f"failed to get pipeline: {e}") from e
+        raise HTTPException(
+            status_code=500, detail=f"failed to get pipeline: {e}"
+        ) from e
 
 
 @router.put("/{pipeline_id}", response_model=PipelineResponse)
@@ -166,7 +174,9 @@ async def update_pipeline_route(pipeline_id: str, updates: PipelineUpdate):
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         log.error("failed to update pipeline %s: %s", pipeline_id, e, exc_info=True)
-        raise HTTPException(status_code=500, detail=f"failed to update pipeline: {e}") from e
+        raise HTTPException(
+            status_code=500, detail=f"failed to update pipeline: {e}"
+        ) from e
 
 
 @router.delete("/{pipeline_id}", status_code=204)
@@ -181,7 +191,9 @@ async def delete_pipeline_route(pipeline_id: str):
         return Response(status_code=204)
     except Exception as e:
         log.error("failed to delete pipeline %s: %s", pipeline_id, e, exc_info=True)
-        raise HTTPException(status_code=500, detail=f"failed to delete pipeline: {e}") from e
+        raise HTTPException(
+            status_code=500, detail=f"failed to delete pipeline: {e}"
+        ) from e
 
 
 @router.put("/{pipeline_id}/ignore-lists", status_code=204)
@@ -195,8 +207,15 @@ async def set_pipeline_ignore_lists(pipeline_id: str, request: SetJunctionReques
         set_ignore_lists(pipeline_id, request.ids)
         return Response(status_code=204)
     except Exception as e:
-        log.error("failed to set ignore lists for pipeline %s: %s", pipeline_id, e, exc_info=True)
-        raise HTTPException(status_code=500, detail=f"failed to set ignore lists: {e}") from e
+        log.error(
+            "failed to set ignore lists for pipeline %s: %s",
+            pipeline_id,
+            e,
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=500, detail=f"failed to set ignore lists: {e}"
+        ) from e
 
 
 @router.put("/{pipeline_id}/selectors", status_code=204)
@@ -213,8 +232,12 @@ async def set_pipeline_selectors(pipeline_id: str, request: SetJunctionRequest):
     except NotImplementedError as e:
         raise HTTPException(status_code=501, detail=str(e)) from e
     except Exception as e:
-        log.error("failed to set selectors for pipeline %s: %s", pipeline_id, e, exc_info=True)
-        raise HTTPException(status_code=500, detail=f"failed to set selectors: {e}") from e
+        log.error(
+            "failed to set selectors for pipeline %s: %s", pipeline_id, e, exc_info=True
+        )
+        raise HTTPException(
+            status_code=500, detail=f"failed to set selectors: {e}"
+        ) from e
 
 
 @router.put("/{pipeline_id}/subscriptions", status_code=204)
@@ -228,6 +251,12 @@ async def set_pipeline_subscriptions(pipeline_id: str, request: SetJunctionReque
         set_subscriptions(pipeline_id, request.ids)
         return Response(status_code=204)
     except Exception as e:
-        log.error("failed to set subscriptions for pipeline %s: %s", pipeline_id, e, exc_info=True)
-        raise HTTPException(status_code=500, detail=f"failed to set subscriptions: {e}") from e
-
+        log.error(
+            "failed to set subscriptions for pipeline %s: %s",
+            pipeline_id,
+            e,
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=500, detail=f"failed to set subscriptions: {e}"
+        ) from e

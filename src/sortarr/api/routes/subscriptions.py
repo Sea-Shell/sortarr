@@ -128,11 +128,15 @@ def list_playlists(
     playlists = []
     for item in response.get("items", []):
         snippet = item.get("snippet", {})
-        playlists.append({
-            "id": item.get("id", ""),
-            "title": snippet.get("title", ""),
-            "thumbnail": snippet.get("thumbnails", {}).get("default", {}).get("url", ""),
-        })
+        playlists.append(
+            {
+                "id": item.get("id", ""),
+                "title": snippet.get("title", ""),
+                "thumbnail": snippet.get("thumbnails", {})
+                .get("default", {})
+                .get("url", ""),
+            }
+        )
 
     log.info("fetched %d playlists", len(playlists))
     return playlists

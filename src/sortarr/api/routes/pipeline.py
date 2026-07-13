@@ -24,7 +24,9 @@ log = logging.getLogger("sortarr.api.routes.pipeline")
 router = APIRouter(tags=["pipeline"])
 
 
-@router.post("/run", response_model=RunSummaryResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/run", response_model=RunSummaryResponse, status_code=status.HTTP_201_CREATED
+)
 def trigger_run(
     request: PreviewRequest,
     runner: Runner = Depends(get_runner),
@@ -64,7 +66,9 @@ def trigger_run(
 
 
 @router.get("/runs", response_model=list[RunSummaryResponse])
-def list_runs(limit: int = 50, state: AppState = Depends(get_state)) -> list[RunSummaryResponse]:
+def list_runs(
+    limit: int = 50, state: AppState = Depends(get_state)
+) -> list[RunSummaryResponse]:
     """List run history.
 
     Args:
