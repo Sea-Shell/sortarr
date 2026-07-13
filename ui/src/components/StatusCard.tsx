@@ -26,6 +26,8 @@ export interface StatusCardProps {
   isLoading?: boolean
   /** Additional CSS classes */
   className?: string
+  /** Test ID for testing */
+  'data-testid'?: string
 }
 
 /**
@@ -102,6 +104,7 @@ const StatusCardComponent = memo(function StatusCard({
   timestamp,
   isLoading = false,
   className,
+  'data-testid': dataTestId,
 }: StatusCardProps) {
   if (isLoading) {
     return <StatusCardSkeleton className={className} />
@@ -117,6 +120,7 @@ const StatusCardComponent = memo(function StatusCard({
         config.borderColor,
         className
       )}
+      data-testid={dataTestId}
     >
       <CardHeader className="pb-2">
         <div className="flex items-center gap-3">

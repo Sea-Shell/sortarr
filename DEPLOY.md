@@ -225,3 +225,162 @@ docker-compose up -d
 ```
 
 See `docker-compose.yml` for configuration.
+
+## Database Migration (v1 → v2)
+
+### When Migration is Needed
+
+If you're upgrading from the legacy v1 sortarr (archive/main.py) to v2, you need to migrate your database. The v1 schema has 5 simple tables, while v2 has 14 tables with richer structure.
+
+**Check if migration is needed:**
+
+```bash
+# Using the migration script
+python scripts/migrate_db.py /data/sortarr.db --check-only
+```
+
+Expected output:
+- `Schema version: v1 (legacy 5-table schema)` → Migration needed
+- `Schema version: v2 (current 14-table schema)` → No migration needed
+
+### Running the Migration
+
+**Option 1: Manual migration (recommended for production)**
+
+```bash
+# Run migration script
+python scripts/migrate_db.py /data/sortarr.db
+
+# This will:
+# 1. Create backup: sortarr.db.backup-TIMESTAMP
+# 2. Migrate data from v1 to v2
+# 3. Verify migration succeeded
+# 4. Show migration summary
+```
+
+**Option 2: Automatic migration on startup**
+
+Set environment variable to enable auto-migration:
+
+```bash
+SORTARR_AUTO_MIGRATE=true
+```
+
+Or in Kubernetes ConfigMap:
+
+```yaml
+data:
+  SORTARR_AUTO_MIGRATE: "true"
+```
+
+**Warning**: Auto-migration runs on every startup if v1 is detected. Manual migration is safer for production.
+
+### What Gets Migrated
+
+**Preserved data:**
+- ✅ Subscriptions (v1.subscription → v2.subscriptions)
+- ✅ Videos audit trail (v1.videos → v2.videos)
+- ✅ Last run timestamp (v1.last_run → v2.app_config)
+- ✅ Playlist info (v1.playlist → default pipeline destination)
+
+**Created during migration:**
+- ✅ Default pipeline named "Migrated from v1" (disabled by default)
+- ✅ Subscription tracking entries
+- ✅ Schema version marker in app_config
+
+**Not migrated (v1 didn't have these):**
+- ❌ Ignore lists
+- ❌ Pipeline selectors
+- ❌ Activity cache
+- ❌ Run history
+
+### After Migration
+
+1. **Verify the migration:**
+   ```bash
+   # Check schema version
+   sqlite3 /data/sortarr.db "SELECT value FROM app_config WHERE key = 'schema_version'"
+   # Should output: 2
+   
+   # Check subscriptions
+   sqlite3 /data/sortarr.db "SELECT COUNT(*) FROM subscriptions"
+   
+   # Check videos
+   sqlite3 /data/sortarr.db "SELECT COUNT(*) FROM videos"
+   ```
+
+2. **Configure pipelines:**
+   - Access web UI at `/ui#pipelines`
+   - Review the "Migrated from v1" pipeline
+   - Enable it or create new pipelines
+   - Configure selectors and ignore lists
+
+3. **Test a dry run:**
+   ```bash
+   curl -X POST http://localhost:8080/api/run/dry
+   ```
+
+### Restoring from Backup
+
+If migration fails or you need to rollback:
+
+```bash
+# List backups
+ls -lh /data/sortarr.db.backup-*
+
+# Restore from backup
+cp /data/sortarr.db.backup-TIMESTAMP /data/sortarr.db
+
+# Restart application
+kubectl rollout restart deployment/sortarr -n seashell
+```
+
+### Migration in Kubernetes
+
+**Before upgrading the deployment:**
+
+```bash
+# 1. Backup current database
+kubectl cp seashell/$(kubectl get pod -n seashell -l app=sortarr -o jsonpath='{.items[0].metadata.name}'):/data/sortarr.db ./sortarr-pre-migration.db
+
+# 2. Copy database locally and test migration
+python scripts/migrate_db.py ./sortarr-pre-migration.db
+
+# 3. If successful, copy migrated database back
+kubectl cp ./sortarr-pre-migration.db seashell/$(kubectl get pod -n seashell -l app=sortarr -o jsonpath='{.items[0].metadata.name}'):/data/sortarr.db
+
+# 4. Update deployment to v2
+kubectl apply -f k8s/deployment.yaml
+```
+
+**Or enable auto-migration in ConfigMap:**
+
+```yaml
+# k8s/configmap.yaml
+data:
+  SORTARR_AUTO_MIGRATE: "true"
+```
+
+Then apply and restart:
+
+```bash
+kubectl apply -f k8s/configmap.yaml
+kubectl rollout restart deployment/sortarr -n seashell
+```
+
+### Troubleshooting Migration
+
+**Migration fails with "unknown schema":**
+- Database might be corrupted
+- Check tables: `sqlite3 sortarr.db ".tables"`
+- Restore from backup
+
+**Migration succeeds but data is missing:**
+- Check migration summary output
+- Verify backup was created
+- Check logs for errors during migration
+
+**Pod crashes after migration:**
+- Check logs: `kubectl logs -n seashell -l app=sortarr`
+- Verify schema version: `sqlite3 sortarr.db "SELECT value FROM app_config WHERE key = 'schema_version'"`
+- Restore from backup if needed

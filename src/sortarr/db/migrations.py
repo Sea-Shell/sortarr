@@ -191,15 +191,48 @@ EXPECTED_INDEXES = [
 ]
 
 
-def init_db(conn: sqlite3.Connection) -> None:
+def init_db(conn: sqlite3.Connection, auto_migrate: bool = False) -> None:
     """Apply the v2 schema to *conn*.
 
     Idempotent — safe to call multiple times (CREATE IF NOT EXISTS).
     Enables ``PRAGMA foreign_keys`` so that ON DELETE CASCADE actually
     fires (SQLite disables FK enforcement by default).
+    
+    Args:
+        conn: Database connection
+        auto_migrate: If True, automatically migrate v1 to v2 if needed
+    
+    Raises:
+        ValueError: If v1 schema detected and auto_migrate=False
     """
+    from sortarr.db.migrate_v1_to_v2 import detect_schema_version, needs_migration, migrate_v1_to_v2
+    
+    version = detect_schema_version(conn)
+    
+    if version == 1:
+        if auto_migrate:
+            log.warning("v1 schema detected - running automatic migration")
+            stats = migrate_v1_to_v2(conn)
+            log.info(f"auto-migration complete: {stats}")
+        else:
+            raise ValueError(
+                "v1 schema detected - migration required. "
+                "Run 'python scripts/migrate_db.py /path/to/sortarr.db' "
+                "or set auto_migrate=True"
+            )
+    
     log.info("applying v2 database schema")
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(V3_SCHEMA_SQL)
     conn.commit()
     log.info("v2 database schema applied successfully")
+
+
+def get_schema_version(conn: sqlite3.Connection) -> int:
+    """Get detected schema version.
+    
+    Returns:
+        0 = empty/new, 1 = v1, 2 = v2, -1 = unknown
+    """
+    from sortarr.db.migrate_v1_to_v2 import detect_schema_version
+    return detect_schema_version(conn)

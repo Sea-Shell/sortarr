@@ -1,0 +1,78 @@
+<h2>Direction B: Subscription-Centric Feed</h2>
+<p class="subtitle">Activity river — subscription list with videos, feed-reader style</p>
+
+<div class="mockup">
+  <div class="mockup-header">sortarr Activity Feed</div>
+  <div class="mockup-body" style="background:#fff;padding:0;">
+    <!-- Top bar -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid #e1e4e8;">
+      <div style="display:flex;align-items:center;gap:24px;">
+        <div style="font-size:20px;font-weight:600;color:#0969da;">sortarr</div>
+        <input type="text" placeholder="Search video ID..." style="width:300px;padding:8px 12px;border:1px solid #e1e4e8;border-radius:6px;" />
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div style="font-size:13px;color:#57606a;">Quota: 4,500/10k</div>
+        <div style="width:8px;height:8px;background:#2da44e;border-radius:50%;"></div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:4px;padding:12px 24px;border-bottom:1px solid #e1e4e8;background:#f6f8fa;">
+      <div style="padding:8px 16px;background:#fff;border-radius:6px;font-weight:500;color:#0969da;">Activity</div>
+      <div style="padding:8px 16px;color:#57606a;cursor:pointer;">Pipelines</div>
+      <div style="padding:8px 16px;color:#57606a;cursor:pointer;">Runs</div>
+    </div>
+
+    <!-- Master-detail -->
+    <div style="display:flex;height:500px;">
+      <!-- Subscription list -->
+      <div style="width:300px;border-right:1px solid #e1e4e8;overflow-y:auto;">
+        <div style="padding:16px;border-bottom:1px solid #e1e4e8;">
+          <div style="font-size:12px;font-weight:600;color:#57606a;">SUBSCRIPTIONS (156)</div>
+        </div>
+        <div style="padding:12px 16px;background:#f6f8fa;cursor:pointer;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:40px;height:40px;background:#ddd;border-radius:50%;"></div>
+            <div>
+              <div style="font-size:14px;font-weight:500;">Tech Channel</div>
+              <div style="font-size:12px;color:#57606a;">8 new • 2h ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Videos -->
+      <div style="flex:1;padding:24px;overflow-y:auto;">
+        <h2 style="font-size:20px;font-weight:600;margin-bottom:20px;">Tech Channel</h2>
+        <div style="display:flex;gap:16px;padding:16px;background:#f6f8fa;border-radius:8px;">
+          <div style="width:120px;height:68px;background:#ddd;border-radius:4px;"></div>
+          <div>
+            <div style="font-size:14px;font-weight:500;margin-bottom:6px;">Building a REST API</div>
+            <div style="font-size:13px;color:#57606a;margin-bottom:8px;">2h ago • 24:15</div>
+            <div style="display:inline-block;padding:4px 8px;background:#fff;border-radius:4px;font-size:11px;color:#0969da;">→ Dev Playlist</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons">
+  <div class="pros">
+    <h4>Strengths</h4>
+    <ul>
+      <li>Activity-first — subscriptions front and center</li>
+      <li>Video search prominent</li>
+      <li>Dense and scannable</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>Trade-offs</h4>
+    <ul>
+      <li>Health check buried</li>
+      <li>Master-detail needs adaptation for mobile</li>
+    </ul>
+  </div>
+</div>
+
+<p style="margin-top:24px;"><a href="comparison.html" style="color:#0969da;">← Back to comparison</a></p>

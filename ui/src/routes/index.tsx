@@ -165,13 +165,14 @@ function Dashboard() {
       )}
 
       {/* Status Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4" data-testid="status-cards">
         <StatusCard
           variant={statusCards.lastRun.variant}
           label={statusCards.lastRun.label}
           value={statusCards.lastRun.value}
           timestamp={statusCards.lastRun.timestamp}
           isLoading={isLoading}
+          data-testid="status-card"
         />
         <StatusCard
           variant={statusCards.videosRouted.variant}
@@ -179,6 +180,7 @@ function Dashboard() {
           value={statusCards.videosRouted.value}
           timestamp={statusCards.videosRouted.timestamp}
           isLoading={isLoading}
+          data-testid="status-card"
         />
         <StatusCard
           variant={statusCards.activeSubs.variant}
@@ -186,6 +188,7 @@ function Dashboard() {
           value={statusCards.activeSubs.value}
           timestamp={statusCards.activeSubs.timestamp}
           isLoading={isLoading}
+          data-testid="status-card"
         />
         <StatusCard
           variant={statusCards.quota.variant}
@@ -193,6 +196,7 @@ function Dashboard() {
           value={statusCards.quota.value}
           timestamp={statusCards.quota.timestamp}
           isLoading={isLoading}
+          data-testid="status-card"
         />
       </div>
 
@@ -206,16 +210,20 @@ function Dashboard() {
 
       {/* Activity Feed and Run Timeline */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ActivityFeed
-          activities={activities}
-          compact
-          isLoading={isLoading || decisionsLoading}
-        />
-        <RunTimeline
-          runs={runItems}
-          compact
-          isLoading={isLoading}
-        />
+        <div data-testid="activity-feed">
+          <ActivityFeed
+            activities={activities}
+            compact
+            isLoading={isLoading || decisionsLoading}
+          />
+        </div>
+        <div data-testid="run-timeline">
+          <RunTimeline
+            runs={runItems}
+            compact
+            isLoading={isLoading}
+          />
+        </div>
       </div>
 
       {/* Pagination Controls */}

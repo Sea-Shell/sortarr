@@ -1,0 +1,2691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>sortarr</title>
+<link rel="icon" type="image/svg+xml" href="sortarr-icon-transparent.svg">
+<link rel="icon" type="image/svg+xml" href="sortarr-icon.svg" sizes="any">
+<link rel="apple-touch-icon" href="sortarr-icon.svg">
+<link rel="manifest" href="manifest.json">
+<link rel="mask-icon" href="sortarr-icon-mono.svg" color="#ff0033">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --canvas: #F7F5F0;
+  --surface: #FFFFFF;
+  --surface-2: #F0EDE8;
+  --surface-hover: #EBE8E0;
+  --text-primary: #1A1A1A;
+  --text-secondary: #5C5A54;
+  --text-tertiary: #8C8A84;
+  --text-muted: #767676;
+  --accent: #E62117;
+  --accent-hover: #CC1E15;
+  --accent-muted: rgba(230,33,23,0.08);
+  --hover-bg: var(--accent-muted);
+  --added: #2E7D32;
+  --added-bg: rgba(46,125,50,0.06);
+  --skipped: #E65100;
+  --skipped-bg: rgba(230,81,0,0.06);
+  --error: #C62828;
+  --error-bg: rgba(198,40,40,0.06);
+  --info: #1565C0;
+  --info-bg: rgba(21,101,192,0.06);
+  --border: rgba(0,0,0,0.08);
+  --border-hover: rgba(0,0,0,0.15);
+  --border-focus: rgba(230,33,23,0.4);
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-ui: 'Inter', -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --radius: 6px;
+  --radius-sm: 4px;
+  --sidebar-width: 220px;
+  --header-height: 48px;
+
+  /* ── Semantic color aliases ── */
+  --color-primary: var(--accent);            /* #E62117 */
+  --color-primary-hover: var(--accent-hover);/* #CC1E15 */
+  --color-primary-muted: var(--accent-muted);
+  --color-link: #CC1E15;                     /* darker than primary for AA on canvas */
+  --color-link-hover: var(--accent);         /* #E62117 */
+  --color-canvas: var(--canvas);             /* #F7F5F0 */
+  --color-surface: var(--surface);           /* #FFFFFF */
+  --color-surface-2: var(--surface-2);       /* #F0EDE8 */
+  --color-surface-hover: var(--surface-hover);
+  --color-on-surface: var(--text-primary);   /* #1A1A1A */
+  --color-secondary: var(--text-secondary);  /* #5C5A54 */
+  --color-tertiary: var(--text-tertiary);    /* #8C8A84 */
+  --color-muted: #767676;                    /* FIXED: was #B0ADA6 (2.2:1 FAIL) */
+  --color-border: var(--border);
+  --color-border-hover: var(--border-hover);
+  --color-border-focus: var(--border-focus);
+  --color-success: var(--added);             /* #2E7D32 */
+  --color-success-bg: var(--added-bg);
+  --color-warning: var(--skipped);           /* #E65100 */
+  --color-warning-bg: var(--skipped-bg);
+  --color-error: var(--error);               /* #C62828 */
+  --color-error-bg: var(--error-bg);
+  --color-info: var(--info);                 /* #1565C0 */
+  --color-info-bg: var(--info-bg);
+
+  /* ── Spacing aliases (keep existing --space-1..8) ── */
+  --sp-xs: var(--space-1);   /* 4px */
+  --sp-sm: var(--space-2);   /* 8px */
+  --sp-md: var(--space-3);   /* 12px */
+  --sp-lg: var(--space-4);   /* 16px */
+  --sp-xl: var(--space-5);   /* 20px */
+  --sp-2xl: var(--space-6);  /* 24px */
+  --sp-3xl: var(--space-7);  /* 32px */
+  --sp-4xl: var(--space-8);  /* 40px */
+
+  /* ── Radius aliases ── */
+  --radius-sm: 4px;
+  --radius-md: var(--radius);  /* 6px */
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* ── Font aliases ── */
+  --font-display: "Fraunces", Georgia, serif;
+  --font-ui: "Inter", -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: var(--font-ui);
+  background: var(--canvas);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--accent-muted); color: var(--text-primary); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); text-decoration: underline; }
+/* ─── Layout Shell ─── */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ─── Sidebar ─── */
+.sidebar {
+  position: fixed;
+  top: 0; left: 0;
+  width: var(--sidebar-width);
+  height: 100vh;
+  background: var(--surface-2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 200;
+  padding: 0;
+}
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: var(--space-5) var(--space-5) var(--space-6);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+}
+.sidebar-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 var(--space-3);
+}
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: background .12s, color .12s;
+  position: relative;
+}
+.sidebar-nav a:hover {
+  background: var(--surface);
+  color: var(--text-primary);
+}
+.sidebar-nav a.active {
+  background: var(--surface);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.sidebar-nav a.active::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  background: var(--accent);
+  border-radius: 0 3px 3px 0;
+}
+.sidebar-nav .nav-icon {
+  font-size: 1.1rem;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.sidebar-footer {
+  padding: var(--space-4) var(--space-3);
+  border-top: 1px solid var(--border);
+}
+.sidebar-footer .btn-primary {
+  width: 100%;
+}
+.main-content {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  min-height: 100vh;
+}
+#mobileMenuToggle { display: none; }
+
+/* ─── Header ─── */
+.header {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-6);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  gap: var(--space-4);
+}
+.header-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  max-width: 400px;
+}
+.header-search input {
+  flex: 1;
+  background: var(--surface-2);
+  border: 1px solid transparent;
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+  transition: border-color .15s, background .15s;
+}
+.header-search input:focus {
+  outline: none;
+  background: var(--surface);
+  border-color: var(--border-focus);
+}
+.header-search input::placeholder { color: var(--text-muted); }
+.health-dot { background: var(--added); }
+.health-dot.error { background: var(--error); }
+
+.main {
+  padding: var(--space-6);
+  max-width: 1400px;
+}
+.page { display: none; }
+.page.active { display: block; }
+.page-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: var(--space-5);
+}
+.page-header h2 {
+  font-size: 1.25rem; font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.page-header .subtitle {
+  font-size: 0.8125rem; color: var(--text-tertiary);
+  font-weight: 400;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  transition: border-color .3s, box-shadow .3s, transform .2s;
+}
+  .card-hover:hover {
+    border-color: var(--border-hover);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+  }
+  .card-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: var(--space-3);
+}
+.card-header h3 { font-size: 0.8125rem; font-weight: 500; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; }
+.stat-grid {
+  display: grid;
+  container-type: inline-size;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+@container (max-width: 299px) {
+  .stat-grid { grid-template-columns: 1fr; }
+}
+@container (min-width: 300px) and (max-width: 599px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@container (min-width: 600px) {
+  .stat-grid { grid-template-columns: repeat(4, 1fr); }
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+}
+.stat-card .stat-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--space-1);
+}
+.stat-card .stat-value {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+  .stat-card .stat-value.small {
+    font-size: 1rem;
+    font-family: var(--font-ui);
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+  .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background .12s, color .12s, border-color .12s, opacity .12s;
+  white-space: nowrap;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary {
+  background: var(--accent);
+  color: #FFFFFF;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-secondary {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+.btn-secondary:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--text-tertiary);
+}
+.btn-ghost:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+  .btn-danger {
+    background: var(--error-bg); color: var(--error); border-color: transparent;
+    transition: background .15s, box-shadow .3s, transform .2s;
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: var(--error); color: #fff;
+    box-shadow: 0 2px 8px rgba(198,40,40,0.3);
+    transform: translateY(-1px);
+  }
+  .btn-sm { padding: 2px var(--space-2); font-size: 0.75rem; }
+  .btn-icon { padding: var(--space-1); line-height: 1; min-width: 44px; min-height: 44px; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+  thead { position: sticky; top: 0; z-index: 1; }
+  th {
+    text-align: left; padding: var(--space-2) var(--space-3);
+    font-weight: 500; font-size: 0.6875rem; color: var(--text-tertiary);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+  td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface-hover); }
+  td.mono { font-family: var(--font-mono); font-size: 0.75rem; }
+  td.num { font-family: var(--font-mono); font-size: 0.75rem; text-align: right; }
+  td .link {
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: none;
+    transition: color .15s, border-color .15s;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 1px;
+  }
+  td .link:hover {
+    color: var(--accent-hover);
+    border-bottom-color: var(--accent);
+  }
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { color: var(--text-secondary); }
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: 1px 6px;
+    border-radius: var(--radius);
+    font-size: 0.6875rem; font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .badge-completed, .badge-ok, .badge-success { background: var(--added-bg); color: var(--added); }
+  .badge-running, .badge-run, .badge-warning { background: var(--skipped-bg); color: var(--skipped); }
+  .badge-failed, .badge-error { background: var(--error-bg); color: var(--error); }
+  .badge-info { background: var(--info-bg); color: var(--info); }
+  .badge-accent { background: var(--accent-muted); color: var(--accent); }
+  .tag-dryrun {
+    display: inline-flex; align-items: center;
+    font-family: var(--font-mono); font-size: 0.625rem; font-weight: 600;
+    padding: 1px 4px; border-radius: 2px;
+    background: var(--skipped-bg); color: var(--skipped);
+    letter-spacing: 0.03em; margin-left: 4px;
+  }
+.form-group { margin-bottom: var(--space-4); }
+.form-group label {
+  display: block;
+  font-size: 0.75rem; font-weight: 500;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-1);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+input, select, textarea {
+  font-family: var(--font-ui);
+  background: var(--canvas);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+  width: 100%;
+  transition: border-color .15s;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+input::placeholder { color: var(--text-muted); }
+input[type="checkbox"], input[type="radio"] { width: auto; }
+select { cursor: pointer; }
+textarea { font-family: var(--font-mono); font-size: 0.75rem; resize: vertical; }
+.form-row { display: flex; gap: var(--space-3); }
+.form-row > * { flex: 1; }
+.checkbox-label {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  cursor: pointer; font-size: 0.8125rem; color: var(--text-secondary);
+}
+.checkbox-label input[type="checkbox"] { width: auto; }
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 250;
+  align-items: flex-start; justify-content: center;
+  overflow-y: auto; padding: var(--space-6);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: rgba(22,22,24,0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,0,51,0.1);
+  border-radius: var(--radius);
+  width: 560px; max-width: 100%;
+  margin: auto;
+  padding: var(--space-5);
+  box-shadow:
+    0 8px 40px rgba(0,0,0,0.7),
+    0 0 0 1px rgba(255,0,51,0.05) inset,
+    0 0 60px rgba(255,0,51,0.03) inset;
+}
+.modal h3 { font-size: 1rem; font-weight: 600; margin-bottom: var(--space-4); }
+.modal-actions {
+  display: flex; gap: var(--space-2);
+  justify-content: flex-end;
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+.toast {
+  position: fixed;   top: var(--space-3);
+  right: var(--space-4); z-index: 300;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius);
+  font-size: 0.8125rem; font-weight: 500;
+  display: none;
+  border: 1px solid var(--border);
+}
+.toast.show { display: block; }
+.toast.error { background: var(--color-error-bg); color: var(--color-error); border-color: rgba(255,23,68,0.2); }
+.toast.success { background: var(--color-success-bg); color: var(--color-success); border-color: rgba(0,230,118,0.2); }
+.toast.warning { background: var(--color-warning-bg); color: var(--color-warning); border-color: rgba(230,138,0,0.2); }
+.toast.info { background: var(--color-info-bg); color: var(--color-info); border-color: rgba(21,101,192,0.2); }
+.spinner {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@keyframes progress-fill {
+  0% { width: 0%; }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+  .config-tabs {
+  display: flex; gap: var(--space-1);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--border);
+}
+.config-tab {
+  font-family: var(--font-ui);
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.8125rem; font-weight: 500;
+  background: transparent; color: var(--text-tertiary);
+  border: none; border-radius: var(--radius);
+  cursor: pointer;
+  transition: color .15s, background .15s;
+}
+.config-tab:hover { color: var(--text-secondary); background: var(--surface-2); }
+.config-tab.active {
+  color: var(--accent); background: var(--surface-hover);
+  box-shadow: inset 0 -1px 0 var(--accent);
+}
+.config-pane { display: block; max-width: 520px; }
+
+.settings-tabs {
+  display: flex; gap: var(--space-1);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--border);
+}
+.settings-tab {
+  font-family: var(--font-ui);
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.8125rem; font-weight: 500;
+  background: transparent; color: var(--text-tertiary);
+  border: none; border-radius: var(--radius);
+  cursor: pointer;
+  transition: color .15s, background .15s;
+}
+.settings-tab:hover { color: var(--text-secondary); background: var(--surface-2); }
+.settings-tab.active {
+  color: var(--accent); background: var(--surface-hover);
+  box-shadow: inset 0 -1px 0 var(--accent);
+}
+.settings-pane { display: none; }
+.settings-pane.active { display: block; }
+
+.empty-state { padding: var(--space-6); text-align: center; color: var(--text-tertiary); font-size: 0.875rem; }
+.empty-state p { margin-bottom: var(--space-2); }
+.loading { color: var(--text-tertiary); font-size: 0.875rem; }
+.error-state { color: var(--color-error); font-size: 0.875rem; }
+
+/* ─── Run Cards ─── */
+.run-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+  margin-bottom: var(--space-3);
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+.run-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.run-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+.run-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.run-status-dot.ok { background: var(--added); }
+.run-status-dot.partial { background: var(--skipped); }
+.run-status-dot.error { background: var(--error); }
+.run-card-title {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+}
+.run-card-meta {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-left: auto;
+}
+.run-card-stats {
+  display: flex;
+  gap: var(--space-4);
+  font-size: 0.8125rem;
+}
+.run-card-stat { font-weight: 500; }
+.run-card-stat.added { color: var(--added); }
+.run-card-stat.skipped { color: var(--skipped); }
+.run-card-stat.error { color: var(--error); }
+.run-card-pipeline {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-top: var(--space-1);
+}
+
+/* Compare checkbox */
+.run-card-select {
+  width: 18px; height: 18px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+.activity-table { font-size: 0.75rem; }
+.activity-table th { background: var(--surface-2); }
+.entry-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--surface-2);
+  padding: 2px 6px; border-radius: var(--radius);
+  font-size: 0.75rem; color: var(--text-secondary);
+  margin: 2px 4px 2px 0;
+}
+.entry-tag .del-entry {
+  background: none; border: none;
+  color: var(--text-muted); cursor: pointer;
+  font-size: 0.875rem; line-height: 1; padding: 0 2px;
+}
+.entry-tag .del-entry:hover { color: var(--color-error); }
+hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--space-5) 0; }
+.auth-card-ok { border-left: 3px solid var(--added); box-shadow: inset 0 0 20px var(--added-bg); }
+.auth-card-fail { border-left: 3px solid var(--color-error); }
+.section-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-3);
+}
+/* Summary bar */
+.run-summary {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+  margin-bottom: var(--space-5);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+}
+.run-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.run-summary-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.run-summary-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.run-summary-value.added { color: var(--added); }
+.run-summary-value.skipped { color: var(--skipped); }
+.run-summary-value.error { color: var(--error); }
+
+/* Decision card */
+.decision-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-left: 3px solid var(--border);
+}
+.decision-card.added {
+  border-left-color: var(--added);
+  background: var(--added-bg);
+}
+.decision-card.skipped {
+  border-left-color: var(--skipped);
+  background: var(--skipped-bg);
+}
+.decision-card.error {
+  border-left-color: var(--error);
+  background: var(--error-bg);
+}
+.decision-card-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.decision-card-title a {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.decision-card-title a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.decision-card-detail {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+.decision-card-detail span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.decision-card-detail .label {
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+.decision-card-detail a {
+  color: var(--info);
+}
+.decision-card-detail a:hover {
+  color: var(--accent);
+}
+.selector-row {
+  display: flex; gap: var(--space-2); margin-bottom: var(--space-2); align-items: center;
+}
+.selector-row select, .selector-row input { padding: var(--space-1) var(--space-2); font-size: 0.75rem; }
+/* ─── Comparison View ─── */
+.comparison-grid {
+  display: grid;
+  container-type: inline-size;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-5);
+}
+@container (max-width: 499px) {
+  .comparison-grid { grid-template-columns: 1fr; }
+}
+@container (min-width: 500px) {
+  .comparison-grid { grid-template-columns: 1fr 1fr; }
+}
+.comparison-col-header {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--border);
+}
+.comparison-diff-new {
+  box-shadow: inset 0 0 0 2px var(--added);
+  border-radius: var(--radius);
+}
+.comparison-diff-missing {
+  opacity: 0.5;
+}
+
+/* ─── Sub Cards ─── */
+.sub-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  margin-bottom: var(--space-2);
+  transition: border-color .15s;
+}
+.sub-card:hover { border-color: var(--border-hover); }
+.sub-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.sub-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.sub-info { flex: 1; min-width: 0; }
+.sub-name {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+.sub-meta {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+.sub-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* ─── Pipeline Cards ─── */
+.pipeline-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+  margin-bottom: var(--space-3);
+}
+.pipeline-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.pipeline-card-name {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+.pipeline-card-status {
+  margin-left: auto;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+.pipeline-card-status.enabled {
+  background: var(--added-bg);
+  color: var(--added);
+}
+.pipeline-card-status.disabled {
+  background: var(--skipped-bg);
+  color: var(--skipped);
+}
+.pipeline-card-detail {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.pipeline-card-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.overflow-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 50;
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 0;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  min-width: 160px;
+  display: none;
+}
+.overflow-menu.open { display: block; }
+.overflow-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-ui);
+}
+.overflow-menu-item:hover {
+  background: #F0EDE8;
+  color: var(--text-primary);
+}
+.overflow-menu-trigger {
+  position: relative;
+}
+.pipeline-overflow-btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-card {
+  background: var(--color-surface-2);
+  border-radius: 6px;
+  min-height: 80px;
+  margin-bottom: 12px;
+  animation: shimmer 2s linear infinite;
+  background: linear-gradient(90deg, var(--color-surface-2) 25%, var(--color-surface-hover) 50%, var(--color-surface-2) 75%);
+  background-size: 200% 100%;
+}
+.skeleton-text {
+  background: var(--color-surface-2);
+  border-radius: 4px;
+  min-height: 14px;
+  width: 60%;
+  margin-bottom: 8px;
+  animation: shimmer 2s linear infinite;
+  background: linear-gradient(90deg, var(--color-surface-2) 25%, var(--color-surface-hover) 50%, var(--color-surface-2) 75%);
+  background-size: 200% 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-card, .skeleton-text { animation: none; }
+}
+
+@media (max-width: 639px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 280px;
+    height: 100vh;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 250ms ease-out;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .sidebar-logo span { display: inline; }
+  .sidebar-nav a span:not(.nav-icon) { display: inline; }
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 199;
+  }
+  .sidebar-overlay[hidden] { display: none; }
+  .main-content { margin-left: 0; }
+  #mobileMenuToggle { display: inline-flex; }
+  .comparison-grid { grid-template-columns: 1fr; }
+  .run-summary { flex-direction: column; gap: var(--space-3); }
+  .form-row { flex-direction: column; }
+  .modal-overlay { align-items: flex-end; }
+  .modal {
+    padding: var(--space-4);
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    margin: 0;
+    border-radius: 12px 12px 0 0;
+    animation: slide-up 250ms ease-out;
+  }
+  @keyframes slide-up {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .toast { left: 50%; transform: translateX(-50%); right: auto; }
+  /* Pipeline card: show ⋮, hide individual action buttons on phone */
+  .pipeline-overflow-trigger { display: inline-block; }
+  .pipeline-card-actions .move-up-pipeline,
+  .pipeline-card-actions .move-down-pipeline,
+  .pipeline-card-actions .edit-pipeline,
+  .pipeline-card-actions .del-pipeline {
+    display: none;
+  }
+}
+@media (min-width: 640px) and (max-width: 1024px) {
+  .sidebar { width: 64px; }
+  .sidebar-logo { justify-content: center; padding: var(--space-5) 0 var(--space-6); }
+  .sidebar-logo span { display: none; }
+  .sidebar-nav { padding: 0; align-items: center; }
+  .sidebar-nav a {
+    justify-content: center;
+    padding: 10px 0;
+    width: 44px;
+    margin: 2px auto;
+  }
+  .sidebar-nav a span:not(.nav-icon) { display: none; }
+  .sidebar-nav a.active::before { left: -10px; }
+  .sidebar-footer { padding: var(--space-4) 0; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+  .sidebar-footer .btn-primary { width: 44px; padding: 10px 0; }
+  .sidebar-footer .btn-secondary { width: 44px; padding: 10px 0; }
+  .main-content { margin-left: 64px; }
+  #mobileMenuToggle { display: none; }
+  .sidebar-overlay { display: none; }
+  .comparison-grid { grid-template-columns: 1fr; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .run-summary { flex-direction: column; gap: var(--space-3); }
+  .form-row { flex-direction: column; }
+  .modal { padding: var(--space-4); }
+  .pipeline-overflow-trigger { display: none; }
+  .pipeline-card-actions .move-up-pipeline,
+  .pipeline-card-actions .move-down-pipeline,
+  .pipeline-card-actions .edit-pipeline,
+  .pipeline-card-actions .del-pipeline {
+    display: inline-flex;
+  }
+}
+@media (min-width: 1025px) {
+  .sidebar { width: 220px; }
+  .sidebar-logo { padding: var(--space-5) var(--space-5) var(--space-6); justify-content: flex-start; }
+  .sidebar-logo span { display: inline; }
+  .sidebar-nav { padding: 0 var(--space-3); align-items: stretch; }
+  .sidebar-nav a { justify-content: flex-start; padding: 8px 12px; width: auto; }
+  .sidebar-nav a span:not(.nav-icon) { display: inline; }
+  .sidebar-nav a.active::before { left: -12px; }
+  .sidebar-footer { padding: var(--space-4) var(--space-3); display: block; }
+  .sidebar-footer .btn-primary { width: 100%; }
+  .sidebar-footer .btn-secondary { width: 100%; }
+  .main-content { margin-left: 220px; }
+  #mobileMenuToggle { display: none; }
+  .sidebar-overlay { display: none; }
+  .comparison-grid { grid-template-columns: 1fr 1fr; }
+  .stat-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .run-summary { flex-direction: row; gap: var(--space-6); }
+  .form-row { flex-direction: row; }
+  .toast { left: auto; transform: none; right: var(--sp-lg); }
+  .pipeline-overflow-trigger { display: none; }
+  .pipeline-card-actions .move-up-pipeline,
+  .pipeline-card-actions .move-down-pipeline,
+  .pipeline-card-actions .edit-pipeline,
+  .pipeline-card-actions .del-pipeline {
+    display: inline-flex;
+  }
+}
+</style>
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+</head>
+<body>
+
+<div class="app-shell">
+  <div class="sidebar-overlay" hidden aria-hidden="true"></div>
+  <aside class="sidebar" role="navigation" aria-label="Main navigation" id="sidebar">
+    <div class="sidebar-logo">
+      <span>sortarr</span>
+    </div>
+    <nav class="sidebar-nav" aria-label="Application sections">
+      <a class="active" data-page="dashboard" href="#dashboard" role="menuitem" aria-current="page">
+        <i class="nav-icon ph ph-grid-four" aria-hidden="true"></i> Dashboard
+      </a>
+      <a data-page="runs" href="#runs" role="menuitem">
+        <i class="nav-icon ph ph-clock-counter-clockwise" aria-hidden="true"></i> Runs
+      </a>
+      <a data-page="subscriptions" href="#subscriptions" role="menuitem">
+        <i class="nav-icon ph ph-list-bullets" aria-hidden="true"></i> Subscriptions
+      </a>
+      <a data-page="pipelines" href="#pipelines" role="menuitem">
+        <i class="nav-icon ph ph-arrow-elbow-down-right" aria-hidden="true"></i> Pipelines
+      </a>
+      <a data-page="settings" href="#settings" role="menuitem">
+        <i class="nav-icon ph ph-gear-six" aria-hidden="true"></i> Settings
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <button id="triggerBtn" class="btn btn-primary" style="width:100%"><i class="ph ph-play" aria-hidden="true"></i> Run Pipeline</button>
+      <button id="dryRunBtn" class="btn btn-secondary" style="width:100%;margin-top:6px"><i class="ph ph-play-circle" aria-hidden="true"></i> Dry Run</button>
+    </div>
+  </aside>
+  <div class="main-content">
+    <header class="header">
+      <button id="mobileMenuToggle" class="btn btn-ghost btn-icon" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="sidebar">
+        <i class="ph ph-list" aria-hidden="true"></i>
+      </button>
+      <div class="header-search">
+        <i class="ph ph-magnifying-glass" aria-hidden="true" style="color:var(--text-tertiary);font-size:0.875rem"></i>
+        <input id="globalSearchInput" type="search" placeholder="Search video ID..." aria-label="Search videos by ID" aria-controls="searchResultsContent" autocomplete="off">
+      </div>
+      <span style="font-size:0.75rem;color:var(--text-tertiary);display:inline-flex;align-items:center;gap:6px;margin-left:auto">
+        <span class="health-dot" id="healthDot" style="width:6px;height:6px;border-radius:50%;display:inline-block"></span>
+        <span id="healthText">loading...</span>
+      </span>
+      <span id="nextRunText" style="font-size:0.75rem;color:var(--text-tertiary);display:inline-flex;align-items:center;gap:6px">
+        <span class="next-run-bar-wrap" style="width:60px;height:3px;background:var(--surface-2);border-radius:2px;overflow:hidden;display:inline-block"><span class="next-run-bar" id="nextRunBar" style="display:block;height:100%;width:0%;background:var(--accent);transition:width .5s ease-out"></span></span>
+      </span>
+    </header>
+    <main class="main">
+
+  <section id="dashboard" class="page active">
+    <div class="page-header">
+      <h2>Dashboard</h2>
+      <span class="subtitle">System overview</span>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">Subscriptions</div>
+        <div class="stat-value" id="statSubs">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pipelines</div>
+        <div class="stat-value" id="statPipelines">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Added</div>
+        <div class="stat-value" id="statVideosAdded">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Last Run</div>
+        <div class="stat-value small" id="statLastRun">-</div>
+      </div>
+    </div>
+
+    <div id="recentRuns">
+      <h3 class="section-title" style="margin-bottom:var(--space-4)">Recent Runs</h3>
+      <div id="dashboardRunsList"><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div></div>
+    </div>
+  </section>
+
+  <section id="search-results" class="page">
+    <div class="page-header">
+      <h2>Search Results</h2>
+    </div>
+    <div id="searchResultsContent"><p class="loading">Searching...</p></div>
+    <p style="margin:var(--space-4) 0">
+      <a href="#dashboard" onclick="showPage('dashboard')" style="color:var(--text-tertiary);font-size:0.875rem"><i class="ph ph-arrow-left" aria-hidden="true"></i> Back</a>
+    </p>
+  </section>
+
+  <section id="subscriptions" class="page">
+    <div class="page-header">
+      <h2>Subscriptions</h2>
+    </div>
+    <div class="add-sub-form" style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4)">
+      <input id="addSubInput" type="text" placeholder="YouTube channel ID or URL..." style="max-width:420px">
+      <button class="btn btn-primary" onclick="addSubscription()">+ Add</button>
+    </div>
+    <div id="subscriptionsList"><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div></div>
+  </section>
+
+  <section id="pipelines" class="page">
+    <div class="page-header">
+      <h2>Pipelines</h2>
+      <button id="addPipelineBtn" class="btn btn-primary">+ Add Pipeline</button>
+    </div>
+    <div id="pipelinesList"></div>
+    <div id="dryRunResult" style="margin-top:var(--space-4)"></div>
+
+    <div id="pipelineModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="pipelineModalTitle" hidden>
+      <div class="modal">
+        <h3 id="pipelineModalTitle">Add Pipeline</h3>
+        <input type="hidden" id="pipelineId">
+        <div class="form-group"><label>Name</label><input id="pipelineName"></div>
+        <div class="form-group"><label>Subscription Scope</label>
+          <select id="pipelineScope"><option value="all">All Subscriptions</option><option value="selected">Selected Only</option></select></div>
+        <div id="pipelineSubscriptions" style="display:none">
+          <div class="form-group"><label>Subscriptions</label>
+          <div id="subChips" style="display:flex;flex-wrap:wrap;gap:var(--space-1);margin-bottom:var(--space-1)"></div>
+          <div style="position:relative">
+            <input id="subFilter" type="text" placeholder="Search subscriptions..." autocomplete="off" style="width:100%;padding:var(--space-1) var(--space-2);font-size:0.8125rem">
+            <div id="pipelineSubList" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:20;max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:0 4px 16px rgba(0,0,0,.1);padding:var(--space-1) 0"></div>
+          </div></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Min Duration</label><input id="pipelineMinDuration" type="text" value="0" placeholder="e.g. 75 or 2m or 1h"></div>
+          <div class="form-group"><label>Max Duration</label><input id="pipelineMaxDuration" type="text" value="0" placeholder="e.g. 480 or 8m or 1h"></div>
+        </div>
+        <div class="form-group"><label>Destination Playlist</label>
+          <select id="pipelineDestPlaylist"><option value="">— Select playlist —</option></select></div>
+        <div style="display:flex;gap:var(--space-4);flex-wrap:wrap;margin-bottom:var(--space-4)">
+          <label class="checkbox-label"><input type="checkbox" id="pipelineCheckDb"> Check DB exists</label>
+          <label class="checkbox-label"><input type="checkbox" id="pipelineCheckTitle"> Title similarity</label>
+        </div>
+        <div class="form-group" id="pipelineDistanceGroup" style="display:none">
+          <label>Compare Distance</label><input id="pipelineDistance" type="number" value="80" min="0" max="100">
+        </div>
+        <hr class="divider">
+        <h4 class="section-title">Selectors</h4>
+        <div id="pipelineSelectors"></div>
+        <button id="addSelectorBtn" class="btn btn-ghost btn-sm" style="margin-bottom:var(--space-4)">+ Add Selector</button>
+        <hr class="divider">
+        <h4 class="section-title">Attached Ignore Lists</h4>
+        <div id="pipelineIgnoreLists"></div>
+        <div class="modal-actions">
+          <button id="pipelineCancel" class="btn btn-secondary">Cancel</button>
+          <button id="pipelineSave" class="btn btn-primary">Save</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="settings" class="page">
+    <div class="page-header">
+      <h2>Settings</h2>
+    </div>
+    <div class="settings-tabs" role="tablist" aria-label="Settings sections">
+      <button class="settings-tab active" data-tab="config" role="tab" aria-selected="true" aria-controls="settingsConfig" id="tab-config">Config</button>
+      <button class="settings-tab" data-tab="ignorelists" role="tab" aria-selected="false" aria-controls="settingsIgnoreLists" id="tab-ignorelists">Ignore Lists</button>
+      <button class="settings-tab" data-tab="auth" role="tab" aria-selected="false" aria-controls="settingsAuth" id="tab-auth">Auth</button>
+    </div>
+    <div id="settingsConfig" class="settings-pane active" role="tabpanel" aria-labelledby="tab-config">
+      <div class="config-tabs" role="tablist" aria-label="Config categories">
+        <button class="config-tab active" data-tab="runtime" role="tab" aria-selected="true" aria-controls="configRuntime" id="tab-runtime">Runtime</button>
+        <button class="config-tab" data-tab="credentials" role="tab" aria-selected="false" aria-controls="configCredentials" id="tab-credentials">Credentials</button>
+      </div>
+      <div id="configRuntime" class="config-pane" role="tabpanel" aria-labelledby="tab-runtime"></div>
+      <div id="configCredentials" class="config-pane" role="tabpanel" aria-labelledby="tab-credentials" style="display:none"></div>
+    </div>
+    <div id="settingsIgnoreLists" class="settings-pane" role="tabpanel" aria-labelledby="tab-ignorelists">
+      <div id="ignorelistsPage"></div>
+    </div>
+    <div id="settingsAuth" class="settings-pane" role="tabpanel" aria-labelledby="tab-auth">
+      <div id="authStatus"></div>
+    </div>
+  </section>
+
+  <section id="runs" class="page">
+    <div class="page-header">
+      <h2>Runs</h2>
+      <div style="display:flex;gap:var(--space-3);align-items:center">
+        <button id="compareBtn" class="btn btn-secondary" style="display:none" onclick="openComparison()">
+          <i class="ph ph-arrows-left-right" aria-hidden="true"></i> Compare Selected
+        </button>
+      </div>
+    </div>
+    <div id="runsList"><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div></div>
+  </section>
+
+  <section id="run-detail" class="page">
+    <div class="page-header">
+      <h2>Run Details</h2>
+    </div>
+    <div id="runDetailSummary"></div>
+    <p style="margin:var(--space-4) 0"><a href="#runs" style="color:var(--text-secondary);font-size:0.875rem"><i class="ph ph-arrow-left" aria-hidden="true"></i> Back to Runs</a></p>
+    <div id="runDetailDecisions"><div class="skeleton-card"></div><div class="skeleton-card"></div></div>
+  </section>
+
+  <section id="comparison" class="page">
+    <div class="page-header">
+      <h2>Run Comparison</h2>
+    </div>
+    <div id="comparisonView"></div>
+    <p style="margin:var(--space-4) 0">
+      <a href="#runs" onclick="showPage('runs')" style="color:var(--text-tertiary);font-size:0.875rem"><i class="ph ph-arrow-left" aria-hidden="true"></i> Back to Runs</a>
+    </p>
+  </section>
+
+</main>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', ...opts.headers },
+  });
+  if (!res.ok) {
+    let body;
+    try { body = await res.text(); } catch { body = res.statusText; }
+    const err = new Error(body || `${res.status}: ${res.statusText}`);
+    err.status = res.status;
+    throw err;
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+function showToast(msg, type = 'error') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  setTimeout(() => { t.className = 'toast'; }, 4000);
+}
+
+function parseDurationSeconds(val) {
+  if (val == null || val === '') return 0;
+  const s = String(val).trim().toLowerCase();
+  const m = s.match(/^(\d+(?:\.\d+)?)\s*([smh])?$/);
+  if (!m) return parseInt(s) || 0;
+  const num = parseFloat(m[1]);
+  const unit = m[2] || 's';
+  if (unit === 'h') return Math.round(num * 3600);
+  if (unit === 'm') return Math.round(num * 60);
+  return Math.round(num);
+}
+
+function formatTime(iso) {
+  if (!iso) return '-';
+  const d = typeof iso === 'string' ? new Date(iso) : iso;
+  if (isNaN(d.getTime())) return typeof iso === 'string' ? iso : '-';
+  const pad = n => String(n).padStart(2, '0');
+  return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) + ' ' +
+         pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear();
+}
+
+function formatDurationShort(seconds) {
+  if (seconds == null || seconds === 0) return '0';
+  if (seconds % 3600 === 0) return (seconds / 3600) + 'h';
+  if (seconds % 60 === 0) return (seconds / 60) + 'm';
+  return seconds + 's';
+}
+
+function formatDuration(seconds) {
+  if (seconds == null || seconds === 0) return '-';
+  if (seconds < 60) return seconds + 's';
+  if (seconds < 3600) return Math.floor(seconds / 60) + 'm';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return m ? h + 'h ' + m + 'm' : h + 'h';
+}
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s); return d.innerHTML;
+}
+
+function statusBadge(status) {
+  if (!status) return '<span class="badge badge-warning">-</span>';
+  if (status === 'completed' || status === 'success') return '<span class="badge badge-success">completed</span>';
+  if (status === 'failed' || status === 'completed_with_errors') return '<span class="badge badge-error">' + status.replace(/_/g,' ') + '</span>';
+  return '<span class="badge badge-warning">' + status + '</span>';
+}
+
+const PAGES = ['dashboard','subscriptions','pipelines','search-results','settings','runs'];
+
+function navigate(page) {
+  location.hash = '#' + page;
+}
+
+function showPage(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const page = document.getElementById(pageId);
+  if (page) page.classList.add('active');
+  document.querySelectorAll('.sidebar-nav a').forEach(a => {
+    a.classList.toggle('active', a.dataset.page === pageId);
+  });
+}
+
+function renderPage(page) {
+  if (window._runDetailTimeout) { clearTimeout(window._runDetailTimeout); window._runDetailTimeout = null; }
+  showPage(page);
+  if (typeof renderers[page] === 'function') renderers[page]();
+}
+
+window.addEventListener('hashchange', () => {
+  const hash = location.hash.slice(1) || 'dashboard';
+  const runMatch = hash.match(/^run-detail-(\d+)$/);
+  if (runMatch) {
+    showPage('run-detail');
+    renderers.runDetail(parseInt(runMatch[1]));
+  } else if (PAGES.includes(hash)) {
+    renderPage(hash);
+  } else {
+    // Unknown hash — show dashboard (safe: showPage no longer sets location.hash)
+    showPage('dashboard');
+  }
+});
+
+
+
+async function updateHealth() {
+  try {
+    const data = await api('/api/health');
+    document.getElementById('healthDot').className = 'health-dot';
+    document.getElementById('healthText').textContent = 'healthy';
+    const nextEl = document.getElementById('nextRunText');
+    const bar = document.getElementById('nextRunBar');
+    if (nextEl && bar && data.next_scheduled_run) {
+      const next = new Date(data.next_scheduled_run);
+      const now = new Date();
+      const diff = Math.max(0, Math.floor((next - now) / 1000));
+      const h = Math.floor(diff / 3600);
+      const m = Math.floor((diff % 3600) / 60);
+      const s = diff % 60;
+      const fmt = diff > 0
+        ? (h > 0 ? h+'h ' : '') + m+'m ' + s+'s'
+        : 'now';
+      nextEl.innerHTML = 'Next run: ' + formatTime(next) + ' (' + fmt + ')';
+      const intervalSec = (data.schedule_interval || 6*3600);
+      const progress = Math.max(0, Math.min(100, (1 - diff / intervalSec) * 100));
+      bar.style.width = progress + '%';
+    } else if (nextEl && bar) {
+      nextEl.innerHTML = '';
+      bar.style.width = '0%';
+    }
+  } catch {
+    document.getElementById('healthDot').className = 'health-dot error';
+    document.getElementById('healthText').textContent = 'unreachable';
+    const bar = document.getElementById('nextRunBar');
+    if (bar) bar.style.width = '0%';
+  }
+}
+
+let allRuns = [];
+
+async function loadRuns() {
+  allRuns = await api('/api/pipeline/runs') || [];
+  const container = document.getElementById('runsList');
+  if (allRuns.length === 0) {
+    container.innerHTML = '<div class="empty-state"><p>No pipeline runs found. Run a pipeline to see results here.</p></div>';
+    return;
+  }
+  container.innerHTML = allRuns.map(r => renderRunCard(r, true)).join('');
+}
+
+function renderRunCard(r, showCheckbox = false) {
+  const hasErrors = (r.errors || 0) > 0;
+  const hasSkips = (r.videos_skipped || 0) > 0 || (r.subscriptions_skipped || 0) > 0;
+  let dotClass = 'ok';
+  if (hasErrors) dotClass = 'error';
+  else if (hasSkips) dotClass = 'partial';
+
+  const dryRunTag = r.dry_run ? '<span class="tag-dryrun">dry-run</span>' : '';
+  const checkbox = showCheckbox ? `<input type="checkbox" class="run-card-select" data-run-id="${r.id}" onchange="updateCompareBtn()" onclick="event.stopPropagation()">` : '';
+
+  return `<div class="run-card" onclick="openRunDetail(${r.id})">
+    <div class="run-card-header">
+      ${checkbox}
+      <span class="run-status-dot ${dotClass}"></span>
+      <span class="run-card-title">Run #${r.id}</span>
+      <span class="run-card-meta">${formatTime(r.created_at)} ${dryRunTag}</span>
+    </div>
+    <div class="run-card-stats">
+      <span class="run-card-stat added">+${r.videos_added || 0} added</span>
+      <span class="run-card-stat skipped">${r.videos_skipped || 0} skipped</span>
+      <span class="run-card-stat error">${r.errors || 0} errors</span>
+      <span style="color:var(--text-tertiary)">${r.subscriptions_processed || 0} subs</span>
+    </div>
+    <div class="run-card-pipeline">${r.pipeline_name || 'Default'} ${r.playlist_id ? '→ ' + r.playlist_id : ''}</div>
+  </div>`;
+}
+
+function updateCompareBtn() {
+  const checked = document.querySelectorAll('.run-card-select:checked');
+  const btn = document.getElementById('compareBtn');
+  btn.style.display = checked.length === 2 ? 'inline-flex' : 'none';
+}
+
+async function openRunDetail(runId) {
+  window._pendingRunId = runId;
+  location.hash = '#run-detail-' + runId;
+  const [run, decisions] = await Promise.all([
+    api('/api/pipeline/runs/' + runId),
+    api('/api/pipeline/runs/' + runId + '/decisions'),
+  ]);
+  // Stale-guard: discard if a newer openRunDetail was started while we waited
+  if (window._pendingRunId !== runId) return;
+  if (!run) return;
+
+  window._currentRunId = runId;
+  window._currentRun = run;
+
+  const hasErrors = (run.errors || 0) > 0;
+  const hasSkips = (run.videos_skipped || 0) > 0;
+  let dotClass = 'ok';
+  if (hasErrors) dotClass = 'error';
+  else if (hasSkips) dotClass = 'partial';
+
+  let html = '<div class="run-summary">' +
+    '<div class="run-summary-item">' +
+      '<span class="run-summary-label">Run</span>' +
+      '<span class="run-summary-value">#' + run.id + ' <span class="run-status-dot ' + dotClass + '" style="display:inline-block;vertical-align:middle;margin-left:6px"></span></span>' +
+    '</div>' +
+    '<div class="run-summary-item">' +
+      '<span class="run-summary-label">Date</span>' +
+      '<span class="run-summary-value">' + formatTime(run.created_at) + '</span>' +
+    '</div>' +
+    '<div class="run-summary-item">' +
+      '<span class="run-summary-label">Trigger</span>' +
+      '<span class="run-summary-value">' + (run.trigger || 'manual') + (run.dry_run ? ' (dry-run)' : '') + '</span>' +
+    '</div>' +
+    '<div class="run-summary-item">' +
+      '<span class="run-summary-label">Added</span>' +
+      '<span class="run-summary-value added">' + (run.videos_added || 0) + '</span>' +
+    '</div>' +
+    '<div class="run-summary-item">' +
+      '<span class="run-summary-label">Skipped</span>' +
+      '<span class="run-summary-value skipped">' + (run.videos_skipped || 0) + '</span>' +
+    '</div>' +
+    '<div class="run-summary-item">' +
+      '<span class="run-summary-label">Errors</span>' +
+      '<span class="run-summary-value error">' + (run.errors || 0) + '</span>' +
+    '</div>' +
+    '<div class="run-summary-item" style="margin-left:auto">' +
+      '<button class="btn btn-ghost" onclick="openComparisonFor(' + runId + ')"><i class="ph ph-arrows-left-right" aria-hidden="true"></i> Compare</button>' +
+    '</div>' +
+  '</div>';
+
+  const added = decisions.filter(function(d) { return d.action === 'added'; });
+  const skipped = decisions.filter(function(d) { return d.action === 'skipped'; });
+  const errors = decisions.filter(function(d) { return d.action === 'error'; });
+  const subSkips = decisions.filter(function(d) { return d.action === 'subscription_skipped'; });
+
+  if (subSkips.length) {
+    html += '<h4 class="section-title" style="margin-bottom:var(--space-3)">Subscription Skips (' + subSkips.length + ')</h4>';
+    subSkips.forEach(function(s) {
+      html += '<div class="decision-card skipped">' +
+        '<div class="decision-card-detail">' +
+          '<span><span class="label">Channel:</span> <a href="https://www.youtube.com/channel/' + escapeHtml(s.channel_id || s.subscription_id || '') + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(s.subscription_title) + '</a></span>' +
+          '<span><span class="label">Reason:</span> ' + escapeHtml(s.reason_detail || s.reason || '-') + '</span>' +
+        '</div>' +
+      '</div>';
+    });
+  }
+
+  if (added.length) {
+    html += '<h4 class="section-title" style="margin:var(--space-5) 0 var(--space-3)">Added (' + added.length + ')</h4>';
+    added.forEach(function(d) {
+      html += renderDecisionCard(d, 'added');
+    });
+  }
+
+  if (skipped.length) {
+    html += '<h4 class="section-title" style="margin:var(--space-5) 0 var(--space-3)">Skipped (' + skipped.length + ')</h4>';
+    skipped.forEach(function(d) {
+      html += renderDecisionCard(d, 'skipped');
+    });
+  }
+
+  if (errors.length) {
+    html += '<h4 class="section-title" style="margin:var(--space-5) 0 var(--space-3)">Errors (' + errors.length + ')</h4>';
+    errors.forEach(function(d) {
+      html += renderDecisionCard(d, 'error');
+    });
+  }
+
+  document.getElementById('runDetailSummary').innerHTML = html;
+
+  const totalDecisions = added.length + skipped.length + errors.length + subSkips.length;
+  if (totalDecisions === 0) {
+    document.getElementById('runDetailDecisions').innerHTML = '<div class="empty-state"><p>No decisions recorded for this run.</p></div>';
+  } else {
+    document.getElementById('runDetailDecisions').innerHTML = '';
+  }
+
+  showPage('run-detail');
+}
+
+function renderDecisionCard(d, type) {
+  var videoLink = d.video_id ? '<a href="https://www.youtube.com/watch?v=' + escapeHtml(d.video_id) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(d.title || d.video_id) + '</a>' : escapeHtml(d.title || '-');
+  var channelLink = d.channel_id || d.subscription_id
+    ? '<a href="https://www.youtube.com/channel/' + escapeHtml(d.channel_id || d.subscription_id || '') + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(d.subscription_title || 'channel') + '</a>'
+    : escapeHtml(d.subscription_title || '-');
+  var pipeline = d.pipeline_name || d.pipeline_id || '';
+  var reason = d.reason_detail || d.reason || '';
+  var duration = d.duration ? formatDuration(d.duration) : '';
+
+  return '<div class="decision-card ' + type + '">' +
+    '<div class="decision-card-title">' + videoLink + '</div>' +
+    '<div class="decision-card-detail">' +
+      (d.subscription_title ? '<span><span class="label">Channel:</span> ' + channelLink + '</span>' : '') +
+      (duration ? '<span><span class="label">Duration:</span> ' + duration + '</span>' : '') +
+      (pipeline ? '<span><span class="label">Pipeline:</span> ' + escapeHtml(pipeline) + '</span>' : '') +
+      (d.video_id ? '<span><a href="https://www.youtube.com/watch?v=' + escapeHtml(d.video_id) + '" target="_blank" rel="noopener noreferrer" style="color:var(--accent)"><i class="ph ph-play" aria-hidden="true"></i> Watch</a></span>' : '') +
+    '</div>' +
+    (reason ? '<div class="decision-card-detail" style="color:var(--text-tertiary);font-size:0.75rem">' + escapeHtml(reason) + '</div>' : '') +
+  '</div>';
+}
+
+async function openComparisonFor(runId) {
+  // Find the previous run
+  const runIndex = allRuns.findIndex(r => r.id === runId);
+  if (runIndex < 0 || runIndex >= allRuns.length - 1) {
+    showToast('No previous run to compare with', 'warning');
+    return;
+  }
+  const runA = allRuns[runIndex];
+  const runB = allRuns[runIndex + 1];
+  await openComparison(runA.id, runB.id);
+}
+
+async function openComparison(runAId, runBId) {
+  // No-arg = checkbox selection mode
+  if (arguments.length === 0) {
+    const checked = document.querySelectorAll('.run-card-select:checked');
+    if (checked.length !== 2) return;
+    const ids = Array.from(checked).map(c => parseInt(c.dataset.runId));
+    ids.sort((a, b) => b - a);
+    checked.forEach(c => { c.checked = false; });
+    document.getElementById('compareBtn').style.display = 'none';
+    return await openComparison(ids[0], ids[1]);
+  }
+
+  try {
+    const [runA, runB, decA, decB] = await Promise.all([
+      api(`/api/pipeline/runs/${runAId}`),
+      api(`/api/pipeline/runs/${runBId}`),
+      api(`/api/pipeline/runs/${runAId}/decisions`),
+      api(`/api/pipeline/runs/${runBId}/decisions`),
+    ]);
+
+    const addedA = decA.filter(d => d.action === 'added');
+    const addedB = decB.filter(d => d.action === 'added');
+    const addedAKeys = new Set(addedA.map(d => d.video_id));
+
+    let html = `<div class="comparison-grid">`;
+
+    // Column A (newer)
+    html += `<div>
+      <div class="comparison-col-header">Run #${runA.id} · ${formatTime(runA.created_at)} <span style="font-weight:400;color:var(--text-tertiary);font-size:0.75rem">+${runA.videos_added || 0} added</span></div>`;
+    addedA.forEach(d => {
+      const isNew = !addedB.some(b => b.video_id === d.video_id);
+      html += `<div class="decision-card added ${isNew ? 'comparison-diff-new' : ''}">${renderDecisionCardContent(d, 'added')}</div>`;
+    });
+    html += `</div>`;
+
+    // Column B (older)
+    html += `<div>
+      <div class="comparison-col-header">Run #${runB.id} · ${formatTime(runB.created_at)} <span style="font-weight:400;color:var(--text-tertiary);font-size:0.75rem">+${runB.videos_added || 0} added</span></div>`;
+    addedB.forEach(d => {
+      const isMissing = !addedAKeys.has(d.video_id);
+      html += `<div class="decision-card added ${isMissing ? 'comparison-diff-missing' : ''}">${renderDecisionCardContent(d, 'added')}</div>`;
+    });
+    html += `</div></div>`;
+
+    document.getElementById('comparisonView').innerHTML = html;
+    showPage('comparison');
+  } catch (err) {
+    showToast('Failed to load comparison: ' + (err.message || err), 'error');
+    showPage('runs');
+  }
+}
+
+// Helper — decision card content without the outer wrapper
+function renderDecisionCardContent(d, type) {
+  const videoLink = d.video_id
+    ? `<a href="https://www.youtube.com/watch?v=${escapeHtml(d.video_id)}" target="_blank" rel="noopener noreferrer">${escapeHtml(d.title || d.video_id)}</a>`
+    : escapeHtml(d.title || '-');
+  const channelLink = d.channel_id || d.subscription_id
+    ? `<a href="https://www.youtube.com/channel/${escapeHtml(d.channel_id || d.subscription_id || '')}" target="_blank" rel="noopener noreferrer">${escapeHtml(d.subscription_title || 'channel')}</a>`
+    : escapeHtml(d.subscription_title || '-');
+
+  return `<div class="decision-card-title">${videoLink}</div>
+    <div class="decision-card-detail">
+      ${d.subscription_title ? `<span><span class="label">Channel:</span> ${channelLink}</span>` : ''}
+      ${d.pipeline_name ? `<span><span class="label">Pipeline:</span> ${escapeHtml(d.pipeline_name)}</span>` : ''}
+    </div>`;
+}
+
+const renderers = {};
+
+renderers.dashboard = async function() {
+  const [runs, subs, config] = await Promise.all([
+    api('/api/pipeline/runs').catch(() => null),
+    api('/api/subscriptions').catch(() => null),
+    api('/api/config').catch(() => null),
+  ]);
+
+  document.getElementById('statSubs').textContent = (subs || []).length;
+  document.getElementById('statPipelines').textContent = ((config && config.pipelines) || []).length;
+
+  if (runs && runs.length > 0) {
+    const last = runs[0];
+    document.getElementById('statVideosAdded').textContent = last.videos_added || 0;
+    document.getElementById('statLastRun').textContent = formatTime(last.created_at);
+
+    // last 5 runs
+    const recent = runs.slice(0, 5);
+    document.getElementById('dashboardRunsList').innerHTML = recent.map(r => renderRunCard(r)).join('');
+  } else {
+    document.getElementById('dashboardRunsList').innerHTML = '<div class="empty-state"><p>No recent runs yet. Trigger a pipeline to get started.</p></div>';
+  }
+};
+
+document.getElementById('triggerBtn')?.addEventListener('click', async function() {
+  this.disabled = true; this.innerHTML = '<span class="spinner"></span> Running...';
+  try {
+    const data = await api('/api/pipeline/trigger', { method: 'POST' });
+    showToast('Pipeline completed (run #' + data.run_id + ')', 'success');
+    renderers.dashboard();
+  } catch (e) {
+    showToast(e.message, 'error');
+  } finally {
+    this.disabled = false; this.innerHTML = '<i class="ph ph-play" aria-hidden="true"></i> Run Pipeline';
+  }
+});
+
+document.getElementById('dryRunBtn')?.addEventListener('click', async function() {
+  this.disabled = true; this.innerHTML = '<span class="spinner"></span> Dry-running...';
+  try {
+    const data = await api('/api/pipeline/trigger?dry_run=true', { method: 'POST' });
+    showToast('Dry-run complete - Run #' + data.run_id, 'success');
+  } catch (e) {
+    showToast(e.message, 'error');
+  } finally {
+    this.disabled = false; this.innerHTML = '<i class="ph ph-play-circle" aria-hidden="true"></i> Dry Run';
+  }
+});
+
+let searchAbortController = null;
+
+document.getElementById('globalSearchInput').addEventListener('keydown', async (e) => {
+  if (e.key !== 'Enter') return;
+  const videoId = e.target.value.trim();
+  if (!videoId) return;
+
+  if (searchAbortController) searchAbortController.abort();
+  searchAbortController = new AbortController();
+
+  showPage('search-results');
+  document.getElementById('searchResultsContent').innerHTML = '<p class="loading">Searching...</p>';
+
+  try {
+    const results = await api(`/api/pipeline/runs/search?video_id=${encodeURIComponent(videoId)}`, {
+      signal: searchAbortController.signal,
+    });
+
+    if (!results || results.length === 0) {
+      document.getElementById('searchResultsContent').innerHTML = '<p class="empty-state">No results found for this video ID</p>';
+      return;
+    }
+
+    let html = `<p style="margin-bottom:var(--space-4);color:var(--text-secondary);font-size:0.875rem">Found in ${results.length} run(s)</p>`;
+    results.forEach(({ run, decision }) => {
+      html += renderDecisionCard(decision, decision.action);
+      html += `<p style="font-size:0.75rem;color:var(--text-tertiary);margin:0 0 var(--space-3) var(--space-1)">Run #${run.run_id} · ${formatTime(run.run_started_at)}</p>`;
+    });
+    document.getElementById('searchResultsContent').innerHTML = html;
+  } catch (err) {
+    if (err.name === 'AbortError') return;
+    document.getElementById('searchResultsContent').innerHTML = `<p class="empty-state">Error: ${escapeHtml(err.message)}</p>`;
+  }
+});
+
+renderers.subscriptions = async function() {
+  const container = document.getElementById('subscriptionsList');
+  container.innerHTML = '<div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>';
+  try {
+    const subs = await api('/api/subscriptions') || [];
+    if (subs.length === 0) {
+      container.innerHTML = '<div class="empty-state"><p>No subscriptions yet. Add a YouTube channel ID or URL above.</p></div>';
+      return;
+    }
+    container.innerHTML = subs.map(s => `
+      <div class="sub-card">
+        <div class="sub-avatar">
+          ${s.thumbnail ? `<img src="${escapeHtml(s.thumbnail)}" alt="">` : ''}
+        </div>
+        <div class="sub-info">
+          <div class="sub-name">
+            <a href="https://www.youtube.com/channel/${escapeHtml(s.channel_id || s.id || '')}" target="_blank" rel="noopener noreferrer">${escapeHtml(s.title)}</a>
+          </div>
+          <div class="sub-meta">${s.itemCount || s.item_count || '-'} videos</div>
+        </div>
+        <div class="sub-actions">
+          <button class="btn btn-ghost" onclick="viewSubActivity('${escapeHtml(s.channel_id || s.id || '')}', '${escapeHtml(s.title)}')">Activity</button>
+        </div>
+      </div>
+    `).join('');
+  } catch { container.innerHTML = '<p class="error-state">Failed to load subscriptions</p>'; }
+};
+
+async function viewSubActivity(channelId, title) {
+  try {
+    const data = await api(`/api/subscriptions/${channelId}/activity`);
+    if (!data || data.length === 0) {
+      showToast('No activity for ' + title, 'warning');
+      return;
+    }
+    const recent = data.slice(0, 5);
+    showToast(recent.map(a => a.title).join(', ') + (data.length > 5 ? '...' : ''), 'info');
+  } catch (e) {
+    showToast('Failed to load activity for ' + title + ': ' + (e.message || e), 'error');
+  }
+}
+
+async function addSubscription() {
+  const input = document.getElementById('addSubInput');
+  const val = input.value.trim();
+  if (!val) return;
+  try {
+    await api('/api/subscriptions/add', {
+      method: 'POST',
+      body: JSON.stringify({ channel_id: val }),
+    });
+    input.value = '';
+    showToast('Subscription added', 'success');
+    renderers.subscriptions();
+  } catch (e) {
+    showToast('Failed to add: ' + (e.message || e), 'error');
+  }
+}
+
+let pipelineIgnoreListCache = [];
+
+async function loadPipelineIgnoreLists() {
+  try { pipelineIgnoreListCache = await api('/api/ignore-lists'); }
+  catch { pipelineIgnoreListCache = []; }
+  return pipelineIgnoreListCache;
+}
+
+async function startPipeline(name) {
+  try {
+    const data = await api('/api/pipeline/run', {
+      method: 'POST',
+      body: JSON.stringify({ pipeline_name: name }),
+    });
+    showToast('Pipeline "' + name + '" started (run #' + data.run_id + ')', 'success');
+    return data;
+  } catch (e) {
+    showToast('Failed to start pipeline: ' + (e.message || e), 'error');
+    throw e;
+  }
+}
+
+async function loadPipelineHistory(pipelineName) {
+  try {
+    const runs = await api('/api/pipeline/runs') || [];
+    return runs.filter(r => r.pipeline_name === pipelineName);
+  } catch {
+    return [];
+  }
+}
+
+renderers.pipelines = async function() {
+  const container = document.getElementById('pipelinesList');
+  container.innerHTML = '<div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>';
+  try {
+    const pipelines = await api('/api/pipelines');
+    await loadPipelineIgnoreLists();
+    if (!Array.isArray(pipelines) || pipelines.length === 0) {
+      container.innerHTML = '<div class="empty-state"><p>No pipelines configured</p><button class="btn btn-primary" style="margin-top:var(--space-3)" onclick="openPipelineModal(null)">+ Add Pipeline</button></div>'; return;
+    }
+
+    // Load runs for per-pipeline history
+    let allRuns = [];
+    try { allRuns = await api('/api/pipeline/runs') || []; } catch {}
+
+    container.innerHTML = pipelines.map((p, i) => {
+      const pipelineRuns = allRuns.filter(r => r.pipeline_name === p.name || r.pipeline_id == p.id);
+      const lastRun = pipelineRuns.length > 0 ? pipelineRuns[0].created_at : null;
+      return `<div class="pipeline-card">
+        <div class="pipeline-card-header">
+          <span class="pipeline-card-name">${escapeHtml(p.name)}</span>
+          <span class="pipeline-card-status ${p.enabled ? 'enabled' : 'disabled'}">${p.enabled ? 'enabled' : 'disabled'}</span>
+        </div>
+        <div class="pipeline-card-detail" style="${p.description ? '' : 'display:none'};margin-bottom:var(--space-2)">
+          ${p.description ? escapeHtml(p.description) : ''}
+        </div>
+        <div class="pipeline-card-detail">
+          <span>Runs: ${pipelineRuns.length}</span>
+          <span>Last: ${lastRun ? formatTime(lastRun) : 'never'}</span>
+          <span>Scope: ${escapeHtml(p.subscription_scope)}</span>
+          <span>Selectors: ${(p.selectors || []).length}</span>
+        </div>
+        <div class="pipeline-card-actions">
+          <div class="pipeline-overflow-trigger overflow-menu-trigger">
+            <button class="pipeline-overflow-btn btn btn-ghost btn-icon" aria-label="More actions" aria-expanded="false"><i class="ph ph-dots-three-vertical" aria-hidden="true"></i></button>
+            <div class="overflow-menu">
+              <button class="overflow-menu-item move-up-pipeline" data-pid="${p.id}" data-idx="${i}"><i class="ph ph-caret-up" aria-hidden="true"></i> Move up</button>
+              <button class="overflow-menu-item move-down-pipeline" data-pid="${p.id}" data-idx="${i}"><i class="ph ph-caret-down" aria-hidden="true"></i> Move down</button>
+              <button class="overflow-menu-item edit-pipeline" data-pid="${p.id}"><i class="ph ph-pencil" aria-hidden="true"></i> Edit</button>
+              <button class="overflow-menu-item del-pipeline" data-pid="${p.id}"><i class="ph ph-trash" aria-hidden="true"></i> Delete</button>
+            </div>
+          </div>
+          <button class="move-up-pipeline btn btn-ghost btn-sm" data-pid="${p.id}" data-idx="${i}"><i class="ph ph-caret-up" aria-hidden="true"></i> Move up</button>
+          <button class="move-down-pipeline btn btn-ghost btn-sm" data-pid="${p.id}" data-idx="${i}"><i class="ph ph-caret-down" aria-hidden="true"></i> Move down</button>
+          <span class="sort-order-badge" style="color:var(--text-muted);font-size:0.75rem;display:flex;align-items:center">${p.sort_order != null ? p.sort_order : '-'}</span>
+          <button class="trigger-pipeline btn btn-primary btn-sm" data-pid="${p.id}"><i class="ph ph-play" aria-hidden="true"></i> Run</button>
+          <button class="dryrun-pipeline btn btn-secondary btn-sm" data-pid="${p.id}"><i class="ph ph-play-circle" aria-hidden="true"></i> Dry Run</button>
+          <button class="edit-pipeline btn btn-ghost btn-sm" data-pid="${p.id}"><i class="ph ph-pencil" aria-hidden="true"></i> Edit</button>
+          <button class="del-pipeline btn btn-danger btn-sm" data-pid="${p.id}"><i class="ph ph-trash" aria-hidden="true"></i> Delete</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Trigger pipeline button (per-card)
+    document.querySelectorAll('.trigger-pipeline').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        this.disabled = true; this.innerHTML = '<span class="spinner"></span>';
+        try {
+          const data = await api('/api/pipeline/trigger?pipeline_id=' + this.dataset.pid, { method: 'POST' });
+          showToast('Run #' + data.run_id + ' completed', 'success');
+          renderers.pipelines();
+        } catch (e) {
+          showToast('Trigger failed: ' + e.message, 'error');
+        } finally {
+          this.disabled = false; this.innerHTML = '<i class="ph ph-play" aria-hidden="true"></i> Run';
+        }
+      });
+    });
+
+    document.querySelectorAll('.del-pipeline').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        if (!confirm('Delete this pipeline?')) return;
+        try {
+          await api('/api/pipelines/' + this.dataset.pid, { method: 'DELETE' });
+          renderers.pipelines();
+        } catch (e) { showToast('Delete failed: ' + e.message); }
+      });
+    });
+
+    document.querySelectorAll('.edit-pipeline').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const row = pipelines.find(p => p.id == this.dataset.pid);
+        if (row) openPipelineModal(row);
+      });
+    });
+
+    document.querySelectorAll('.dryrun-pipeline').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        this.disabled = true; this.innerHTML = '<span class="spinner"></span>';
+        const pid = this.dataset.pid;
+        try {
+          const data = await api('/api/pipeline/trigger?dry_run=true&pipeline_id=' + pid, { method: 'POST' });
+          showToast('Dry run #' + data.run_id + ' complete', 'success');
+        } catch (e) {
+          showToast('Dry run failed: ' + e.message, 'error');
+        } finally {
+          this.disabled = false; this.innerHTML = '<i class="ph ph-play-circle" aria-hidden="true"></i> Dry Run';
+        }
+      });
+    });
+
+    // ── Reorder controls ─────────────────────────────────────
+    function swapAndSubmitReorder(idxA, idxB) {
+      // Swap the two positions in the pipelines array
+      const tmp = pipelines[idxA];
+      pipelines[idxA] = pipelines[idxB];
+      pipelines[idxB] = tmp;
+      // Send full ordered list to the backend
+      const pipeline_ids = pipelines.map(p => p.id);
+      api('/api/pipelines/reorder', {
+        method: 'PUT',
+        body: JSON.stringify({ pipeline_ids })
+      }).then(() => renderers.pipelines())
+        .catch(e => showToast('Reorder failed: ' + e.message, 'error'));
+    }
+
+    document.querySelectorAll('.move-up-pipeline').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        const idx = parseInt(this.dataset.idx);
+        if (idx <= 0) return;
+        swapAndSubmitReorder(idx, idx - 1);
+      });
+    });
+
+    document.querySelectorAll('.move-down-pipeline').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        const idx = parseInt(this.dataset.idx);
+        if (idx >= pipelines.length - 1) return;
+        swapAndSubmitReorder(idx, idx + 1);
+      });
+    });
+  } catch { container.innerHTML = '<p class="error-state">Failed to load pipelines</p>'; }
+};
+
+function openPipelineModal(pipeline) {
+  const modal = document.getElementById('pipelineModal');
+  document.getElementById('pipelineModalTitle').textContent = pipeline ? 'Edit Pipeline' : 'Add Pipeline';
+  document.getElementById('pipelineId').value = pipeline ? pipeline.id : '';
+  document.getElementById('pipelineName').value = pipeline ? pipeline.name : '';
+  document.getElementById('pipelineScope').value = pipeline ? pipeline.subscription_scope : 'all';
+  window._editingPipeline = pipeline;
+
+  // ── Subscription picker ─────────────────────────────────
+  _selectedSubs = {};
+  const prevSelectedIds = pipeline && pipeline.subscription_ids ? pipeline.subscription_ids.slice() : [];
+  prevSelectedIds.forEach(id => { _selectedSubs[id] = id; });
+  const scope = document.getElementById('pipelineScope').value;
+  const subsContainer = document.getElementById('pipelineSubscriptions');
+  subsContainer.style.display = scope === 'selected' ? 'block' : 'none';
+  document.getElementById('subFilter').value = '';
+  document.getElementById('pipelineSubList').style.display = 'none';
+  renderSubChips();
+  window._subData = null;
+  api('/api/subscriptions').then(subs => {
+    window._subData = (subs || []).map(s => ({ cid: s.channel_id, title: s.title }));
+    prevSelectedIds.forEach(id => {
+      const found = (window._subData || []).find(s => s.cid === id);
+      _selectedSubs[id] = found ? found.title : id;
+    });
+    renderSubChips();
+    renderSubDropdown();
+  }).catch(() => { window._subData = []; renderSubChips(); renderSubDropdown(); });
+
+  document.getElementById('pipelineMinDuration').value = pipeline ? formatDurationShort(pipeline.duration_min_seconds) : '0';
+  document.getElementById('pipelineMaxDuration').value = pipeline ? formatDurationShort(pipeline.duration_max_seconds) : '0';
+  document.getElementById('pipelineCheckDb').checked = pipeline ? pipeline.check_db_exists : false;
+  document.getElementById('pipelineCheckTitle').checked = pipeline ? pipeline.check_title_similarity : false;
+  document.getElementById('pipelineDistance').value = pipeline ? (pipeline.compare_distance || 80) : 80;
+  document.getElementById('pipelineDistanceGroup').style.display = document.getElementById('pipelineCheckTitle').checked ? 'block' : 'none';
+
+  const sel = document.getElementById('pipelineDestPlaylist');
+  // <option> cannot contain HTML elements — keeping text fallback
+  sel.innerHTML = '<option value="">\u23F3 Loading...</option>';
+  sel.disabled = true;
+  api('/api/playlists').then(playlists => {
+    sel.innerHTML = '<option value="">\u2014 Select playlist \u2014</option>';
+    (playlists || []).forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.title;
+      sel.appendChild(opt);
+    });
+    if (pipeline && pipeline.destination_playlist_id) {
+      sel.value = pipeline.destination_playlist_id;
+    }
+    sel.disabled = false;
+  }).catch(() => {
+    sel.innerHTML = '<option value="">\u2014 Failed to load \u2014</option>';
+    sel.disabled = false;
+  });
+
+  const selectors = pipeline ? (pipeline.selectors || []) : [];
+  renderSelectorRows(selectors);
+
+  const attached = pipeline ? (pipeline.ignore_list_ids || []) : [];
+  renderIgnoreListCheckboxes(attached);
+
+  modal.classList.add('open');
+}
+
+function renderSelectorRows(selectors) {
+  const container = document.getElementById('pipelineSelectors');
+  container.innerHTML = selectors.map((s, i) =>
+    '<div class="selector-row">' +
+    (i > 0
+      ? '<select class="sel-combine" style="width:auto;padding:var(--space-1) var(--space-2);font-size:0.75rem">' +
+        '<option value="AND"' + ((s.combine_operator||'AND') === 'AND' ? ' selected' : '') + '>AND</option>' +
+        '<option value="OR"' + ((s.combine_operator||'AND') === 'OR' ? ' selected' : '') + '>OR</option>' +
+        '</select>'
+      : '') +
+    '<select class="sel-field" style="flex:1;padding:var(--space-1) var(--space-2);font-size:0.75rem">' +
+    '<option value="title"' + (s.field === 'title' ? ' selected' : '') + '>Title</option>' +
+    '<option value="channel_title"' + (s.field === 'channel_title' ? ' selected' : '') + '>Channel Title</option>' +
+    '<option value="description"' + (s.field === 'description' ? ' selected' : '') + '>Description</option>' +
+    '</select>' +
+    '<select class="sel-operator" style="flex:1;padding:var(--space-1) var(--space-2);font-size:0.75rem">' +
+    '<option value="contains"' + (s.operator === 'contains' ? ' selected' : '') + '>contains</option>' +
+    '<option value="regex"' + (s.operator === 'regex' ? ' selected' : '') + '>regex</option>' +
+    '<option value="equals"' + (s.operator === 'equals' ? ' selected' : '') + '>equals</option>' +
+    '</select>' +
+    '<input class="sel-pattern" value="' + escapeHtml(s.pattern) + '" placeholder="pattern" style="flex:2;padding:var(--space-1) var(--space-2);font-size:0.75rem">' +
+    '<button class="del-selector btn btn-danger btn-sm">X</button>' +
+    '</div>'
+  ).join('') || '<p style="color:var(--text-tertiary);font-size:0.875rem">No selectors</p>';
+  document.querySelectorAll('.del-selector').forEach(btn => {
+    btn.onclick = function() { this.closest('.selector-row').remove(); };
+  });
+}
+
+function renderIgnoreListCheckboxes(attached) {
+  const container = document.getElementById('pipelineIgnoreLists');
+  const lists = pipelineIgnoreListCache;
+  if (lists.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-tertiary);font-size:0.8125rem">No ignore lists available. Create them in Ignore Lists first.</p>';
+    return;
+  }
+  container.innerHTML = lists.map(l =>
+    '<label class="checkbox-label" style="margin-bottom:var(--space-1);display:flex">' +
+    '<input type="checkbox" class="ignore-list-cb" data-lid="' + l.id + '"' + (attached.includes(l.id) ? ' checked' : '') + '>' +
+    escapeHtml(l.name) + ' <span class="badge badge-running" style="margin-left:4px;font-size:0.625rem">' + l.list_type + '</span>' +
+    '</label>'
+  ).join('');
+}
+
+let _selectedSubs = {};
+
+function renderSubChips() {
+  const chipContainer = document.getElementById('subChips');
+  const ids = Object.keys(_selectedSubs);
+  if (ids.length === 0) { chipContainer.innerHTML = ''; return; }
+  chipContainer.innerHTML = ids.map(id =>
+    '<span style="display:inline-flex;align-items:center;gap:2px;padding:2px 6px;font-size:0.75rem;border:1px solid var(--accent);border-radius:var(--radius);background:var(--accent-muted)">' +
+    escapeHtml(_selectedSubs[id]) +
+    '<button class="sub-chip-remove" data-cid="' + escapeHtml(id) + '" style="background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:0.75rem;line-height:1;padding:0 0 0 2px">&times;</button></span>'
+  ).join('');
+  chipContainer.querySelectorAll('.sub-chip-remove').forEach(btn => {
+    btn.onclick = () => { delete _selectedSubs[btn.dataset.cid]; renderSubChips(); renderSubDropdown(); };
+  });
+}
+
+function fuzzySubScore(title, filter) {
+  if (!filter) return -1;
+  const hay = title.toLowerCase();
+  const needle = filter.toLowerCase().trim();
+  let pos = 0;
+  let score = hay.includes(needle) ? 1000 - hay.indexOf(needle) : 0;
+  for (const ch of needle) {
+    const found = hay.indexOf(ch, pos);
+    if (found === -1) return -1;
+    score += Math.max(1, 50 - (found - pos));
+    pos = found + 1;
+  }
+  return score;
+}
+
+function renderSubDropdown() {
+  const subs = window._subData || [];
+  const filter = (document.getElementById('subFilter').value || '').trim();
+  const list = document.getElementById('pipelineSubList');
+  const filtered = filter
+    ? subs.map(s => ({ ...s, score: fuzzySubScore(s.title, filter) }))
+        .filter(s => s.score >= 0)
+        .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
+        .slice(0, 25)
+    : [];
+  if (filtered.length === 0) {
+    list.innerHTML = filter ? '<div style="padding:var(--space-2);color:var(--text-tertiary);font-size:0.8125rem">No subscriptions match</div>' : '';
+    list.style.display = filter ? 'block' : 'none';
+    return;
+  }
+  list.style.display = 'block';
+  list.innerHTML = filtered.map(s => {
+    const bg = _selectedSubs[s.cid] ? 'background:var(--accent-muted);' : '';
+    return '<div class="sub-result-row" data-cid="' + escapeHtml(s.cid) + '" style="' + bg + 'padding:var(--space-1) var(--space-2);cursor:pointer;font-size:0.8125rem;display:flex;align-items:center;gap:var(--space-2)">' +
+      '<span style="flex-shrink:0;width:14px;text-align:center;color:var(--accent)">' + (_selectedSubs[s.cid] ? '&#10003;' : '') + '</span>' +
+      escapeHtml(s.title) +
+    '</div>';
+  }).join('');
+  list.querySelectorAll('.sub-result-row').forEach(row => {
+    row.onclick = () => {
+      const cid = row.dataset.cid;
+      const sub = (window._subData || []).find(s => s.cid === cid);
+      if (!sub) return;
+      if (_selectedSubs[cid]) { delete _selectedSubs[cid]; }
+      else { _selectedSubs[cid] = sub.title; }
+      renderSubChips();
+      renderSubDropdown();
+      document.getElementById('subFilter').focus();
+    };
+    row.onmouseenter = () => { row.style.background = 'var(--hover-bg, var(--accent-muted))'; };
+    row.onmouseleave = () => { row.style.background = _selectedSubs[row.dataset.cid] ? 'var(--accent-muted)' : ''; };
+  });
+}
+
+document.addEventListener('click', function(e) {
+  const list = document.getElementById('pipelineSubList');
+  const filter = document.getElementById('subFilter');
+  if (list && filter && !filter.contains(e.target) && !list.contains(e.target)) {
+    list.style.display = 'none';
+  }
+});
+
+document.getElementById('addPipelineBtn')?.addEventListener('click', () => openPipelineModal(null));
+document.getElementById('pipelineCancel')?.addEventListener('click', () => {
+  document.getElementById('pipelineModal').classList.remove('open');
+});
+document.getElementById('addSelectorBtn')?.addEventListener('click', function() {
+  const container = document.getElementById('pipelineSelectors');
+  const empty = container.querySelector('p');
+  if (empty) empty.remove();
+  const div = document.createElement('div');
+  div.className = 'selector-row';
+  div.innerHTML =
+    '<select class="sel-combine" style="width:auto;padding:var(--space-1) var(--space-2);font-size:0.75rem">' +
+    '<option value="AND">AND</option><option value="OR">OR</option></select>' +
+    '<select class="sel-field" style="flex:1;padding:var(--space-1) var(--space-2);font-size:0.75rem">' +
+    '<option value="title">Title</option><option value="channel_title">Channel Title</option><option value="description">Description</option></select>' +
+    '<select class="sel-operator" style="flex:1;padding:var(--space-1) var(--space-2);font-size:0.75rem">' +
+    '<option value="contains">contains</option><option value="regex">regex</option><option value="equals">equals</option></select>' +
+    '<input class="sel-pattern" value="" placeholder="pattern" style="flex:2;padding:var(--space-1) var(--space-2);font-size:0.75rem">' +
+    '<button class="del-selector btn btn-danger btn-sm">X</button>';
+  container.appendChild(div);
+  div.querySelector('.del-selector').onclick = function() { div.remove(); };
+});
+document.getElementById('pipelineCheckTitle')?.addEventListener('change', function() {
+  document.getElementById('pipelineDistanceGroup').style.display = this.checked ? 'block' : 'none';
+});
+document.getElementById('pipelineScope')?.addEventListener('change', function() {
+  const subsContainer = document.getElementById('pipelineSubscriptions');
+  if (this.value === 'selected') {
+    subsContainer.style.display = 'block';
+    if (window._subData) renderSubDropdown();
+  } else {
+    subsContainer.style.display = 'none';
+  }
+});
+document.getElementById('subFilter')?.addEventListener('input', function() {
+  renderSubDropdown();
+});
+document.getElementById('subFilter')?.addEventListener('focus', function() {
+  if (this.value && window._subData) renderSubDropdown();
+});
+document.getElementById('pipelineSave')?.addEventListener('click', async function() {
+  const id = document.getElementById('pipelineId').value;
+  const selectorRows = document.querySelectorAll('#pipelineSelectors .selector-row');
+  const selectors = Array.from(selectorRows).map(row => ({
+    field: row.querySelector('.sel-field').value,
+    operator: row.querySelector('.sel-operator').value,
+    pattern: row.querySelector('.sel-pattern').value,
+    combine_operator: row.querySelector('.sel-combine')?.value || 'AND',
+  })).filter(s => s.pattern.trim());
+  const ignoreListIds = Array.from(document.querySelectorAll('.ignore-list-cb:checked')).map(cb => cb.dataset.lid);
+  const body = {
+    name: document.getElementById('pipelineName').value,
+    subscription_scope: document.getElementById('pipelineScope').value,
+    duration_min_seconds: parseDurationSeconds(document.getElementById('pipelineMinDuration').value),
+    duration_max_seconds: parseDurationSeconds(document.getElementById('pipelineMaxDuration').value),
+    destination_playlist_id: document.getElementById('pipelineDestPlaylist').value,
+    destination_playlist_title: document.getElementById('pipelineDestPlaylist').selectedOptions[0]?.text || '',
+    check_db_exists: document.getElementById('pipelineCheckDb').checked,
+    check_title_similarity: document.getElementById('pipelineCheckTitle').checked,
+    compare_distance: parseInt(document.getElementById('pipelineDistance').value) || 80,
+  };
+  // Preserve sort_order on update
+  if (id && window._editingPipeline && window._editingPipeline.sort_order != null) {
+    body.sort_order = window._editingPipeline.sort_order;
+  }
+  try {
+    let pipeline;
+    if (id) {
+      pipeline = await api('/api/pipelines/' + id, { method: 'PUT', body: JSON.stringify(body) });
+      showToast('Pipeline updated', 'success');
+    } else {
+      pipeline = await api('/api/pipelines', { method: 'POST', body: JSON.stringify(body) });
+      showToast('Pipeline created', 'success');
+    }
+    const pid = pipeline ? pipeline.id : id;
+    await api('/api/pipelines/' + pid + '/selectors', {
+      method: 'PUT', body: JSON.stringify({ selectors }),
+    });
+    await api('/api/pipelines/' + pid + '/ignore-lists', {
+      method: 'PUT', body: JSON.stringify({ ignore_list_ids: ignoreListIds }),
+    });
+    const selectedSubscriptionIds = document.getElementById('pipelineScope').value === 'selected'
+      ? Object.keys(_selectedSubs)
+      : [];
+    await api('/api/pipelines/' + pid + '/subscriptions', {
+      method: 'PUT', body: JSON.stringify({ subscription_ids: selectedSubscriptionIds }),
+    });
+    document.getElementById('pipelineModal').classList.remove('open');
+    renderers.pipelines();
+  } catch (e) { showToast('Save failed: ' + e.message); }
+});
+
+renderers.configRuntime = async function() {
+  const container = document.getElementById('configRuntime');
+  container.innerHTML = '<div class="skeleton-text"></div><div class="skeleton-text"></div><div class="skeleton-text"></div><div class="skeleton-text"></div>';
+  try {
+    const cfg = await api('/api/config');
+    const fields = [
+      ['schedule', 'Schedule (cron)', 'text'],
+      ['compare_distance', 'Compare Distance (0-100)', 'number'],
+      ['reprocess_days', 'Reprocess Days', 'number'],
+      ['playlist_sleep', 'Playlist Sleep (s)', 'number'],
+      ['subscription_sleep', 'Subscription Sleep (s)', 'number'],
+      ['pipeline_concurrency', 'Pipeline Concurrency', 'number'],
+      ['activity_limit', 'Activity Limit', 'number'],
+      ['subscription_limit', 'Subscription Limit', 'number'],
+      ['published_after', 'Published After (ISO date)', 'text'],
+      ['no_webbrowser', 'No Webbrowser', 'checkbox'],
+      ['log_level', 'Log Level', 'text'],
+      ['public_url', 'Public URL', 'text'],
+    ];
+    container.innerHTML = fields.map(([key, label, type]) =>
+      type === 'checkbox'
+        ? '<div class="form-group"><label class="checkbox-label" style="display:flex">' +
+          '<input type="checkbox" id="cfg_' + key + '"' + (cfg[key] ? ' checked' : '') + '>' +
+          label + '</label></div>'
+        : '<div class="form-group"><label>' + label + '</label>' +
+          '<input type="' + type + '" id="cfg_' + key + '" value="' + escapeHtml(String(cfg[key] ?? '')) + '"></div>'
+    ).join('') + '<button id="configSaveRuntime" class="btn btn-primary" style="margin-top:var(--space-2)">Save Config</button>';
+    document.getElementById('configSaveRuntime').onclick = async function() {
+      const body = {};
+      fields.forEach(([key]) => {
+        const el = document.getElementById('cfg_' + key);
+        if (el.type === 'checkbox') {
+          body[key] = el.checked;
+        } else {
+          body[key] = el.value;
+        }
+      });
+      try {
+        await api('/api/config', { method: 'PUT', body: JSON.stringify(body) });
+        showToast('Config saved', 'success');
+      } catch (e) { showToast('Save failed: ' + e.message); }
+    };
+  } catch { container.innerHTML = '<p class="error-state">Failed to load config</p>'; }
+};
+
+renderers.configCredentials = async function() {
+  const container = document.getElementById('configCredentials');
+  container.innerHTML = '<div class="skeleton-text"></div><div class="skeleton-text"></div>';
+  try {
+    const cfg = await api('/api/config');
+    container.innerHTML =
+      '<div class="card"><div class="card-header"><h3>Client Secret JSON</h3></div>' +
+      '<p style="color:var(--text-tertiary);font-size:0.75rem;margin-bottom:var(--space-3)">Paste the contents of your Google OAuth client_secret.json file here.</p>' +
+      '<textarea id="cfg_credentials_file" rows="12" style="width:100%">' + escapeHtml(cfg.credentials_file || '') + '</textarea>' +
+      '<button id="saveCredentialsBtn" class="btn btn-primary" style="margin-top:var(--space-3)">Save Credentials</button></div>';
+    document.getElementById('saveCredentialsBtn').onclick = async () => {
+      try {
+        await api('/api/config', {
+          method: 'PUT',
+          body: JSON.stringify({ credentials_file: document.getElementById('cfg_credentials_file').value })
+        });
+        showToast('Credentials saved', 'success');
+      } catch (e) { showToast('Save failed: ' + e.message); }
+    };
+  } catch { container.innerHTML = '<p class="error-state">Failed to load</p>'; }
+};
+
+renderers.ignorelists = async function() {
+  const container = document.getElementById('ignorelistsPage');
+  container.innerHTML = '<div class="skeleton-text"></div><div class="skeleton-text"></div><div class="skeleton-text"></div>';
+  try {
+    const lists = await api('/api/ignore-lists');
+    if (!lists || lists.length === 0) {
+      container.innerHTML =
+        '<div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4)">' +
+        '<input id="newListName" placeholder="List name..." style="flex:1">' +
+        '<select id="newListType" style="width:auto">' +
+        '<option value="word">Word</option><option value="video">Video ID</option><option value="subscription">Subscription</option>' +
+        '</select>' +
+        '<button id="addListBtn" class="btn btn-primary">Create</button></div>' +
+        '<div class="empty-state"><p>No ignore lists configured. Create one to skip matching videos.</p></div>';
+      setupIgnoreListCreateBtn();
+      return;
+    }
+    container.innerHTML =
+      '<div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4)">' +
+      '<input id="newListName" placeholder="List name..." style="flex:1">' +
+      '<select id="newListType" style="width:auto">' +
+      '<option value="word">Word</option><option value="video">Video ID</option><option value="subscription">Subscription</option>' +
+      '</select>' +
+      '<button id="addListBtn" class="btn btn-primary">Create</button></div>' +
+      '<div id="ignoreListsContainer">' + lists.map(l =>
+        '<div class="card" style="margin-bottom:var(--space-3)">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3)">' +
+        '<span><strong>' + escapeHtml(l.name) + '</strong> <span class="badge badge-running" style="font-size:0.625rem">' + l.list_type + '</span></span>' +
+        '<button class="del-ignore-list btn btn-danger btn-sm" data-lid="' + l.id + '">Delete</button></div>' +
+        '<div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-2)">' +
+        '<input class="new-entry-input" data-lid="' + l.id + '" placeholder="Add entry..." style="flex:1;font-size:0.75rem">' +
+        '<button class="add-entry-btn btn btn-primary btn-sm" data-lid="' + l.id + '">Add</button></div>' +
+        '<div class="entry-list" data-lid="' + l.id + '">' +
+        (l.entries.length === 0
+          ? '<span style="color:var(--text-tertiary);font-size:0.75rem">No entries</span>'
+          : l.entries.map(e =>
+              '<span class="entry-tag">' + escapeHtml(e) +
+              '<button class="del-entry" data-lid="' + l.id + '" data-value="' + escapeHtml(e) + '">&times;</button></span>'
+            ).join('')
+        ) + '</div></div>'
+      ).join('') + '</div>';
+
+    setupIgnoreListCreateBtn();
+
+    async function refresh() { await renderers.ignorelists(); }
+
+    function setupIgnoreListCreateBtn() {
+      document.getElementById('addListBtn').onclick = async function() {
+      const name = document.getElementById('newListName').value.trim();
+      const type = document.getElementById('newListType').value;
+      if (!name) return;
+      try {
+        await api('/api/ignore-lists', { method: 'POST', body: JSON.stringify({ name, list_type: type }) });
+        document.getElementById('newListName').value = '';
+        await refresh();
+        showToast('List created', 'success');
+      } catch (e) { showToast('Create failed: ' + e.message); }
+    };
+    }
+
+    container.querySelectorAll('.del-ignore-list').forEach(btn => {
+      btn.onclick = async function() {
+        if (!confirm('Delete this ignore list?')) return;
+        try {
+          await api('/api/ignore-lists/' + this.dataset.lid, { method: 'DELETE' });
+          await refresh();
+          showToast('List deleted', 'success');
+        } catch (e) { showToast('Delete failed: ' + e.message); }
+      };
+    });
+
+    container.querySelectorAll('.add-entry-btn').forEach(btn => {
+      btn.onclick = async function() {
+        const lid = this.dataset.lid;
+        const input = container.querySelector('.new-entry-input[data-lid="' + lid + '"]');
+        const value = input.value.trim();
+        if (!value) return;
+        try {
+          await api('/api/ignore-lists/' + lid + '/entries', { method: 'POST', body: JSON.stringify({ value }) });
+          await refresh();
+          showToast('Entry added', 'success');
+        } catch (e) { showToast('Add failed: ' + e.message); }
+      };
+    });
+
+    container.querySelectorAll('.del-entry').forEach(btn => {
+      btn.onclick = async function() {
+        const lid = this.dataset.lid;
+        const value = this.dataset.value;
+        try {
+          const entries = await api('/api/ignore-lists/' + lid + '/entries');
+          const entry = entries.find(e => e.value === value);
+          if (!entry) { showToast('Entry not found', 'error'); return; }
+          await api('/api/ignore-lists/' + lid + '/entries/' + entry.id, { method: 'DELETE' });
+          await refresh();
+          showToast('Entry deleted', 'success');
+        } catch (e) { showToast('Delete failed: ' + e.message); }
+      };
+    });
+  } catch { container.innerHTML = '<p class="error-state">Failed to load ignore lists</p>'; }
+};
+
+function switchSettingsTab(tab) {
+  document.querySelectorAll('.settings-tab').forEach(b => {
+    b.classList.remove('active');
+    b.setAttribute('aria-selected', 'false');
+  });
+  document.querySelectorAll('.settings-pane').forEach(p => p.classList.remove('active'));
+  const activeTab = document.querySelector('.settings-tab[data-tab="' + tab + '"]');
+  if (activeTab) {
+    activeTab.classList.add('active');
+    activeTab.setAttribute('aria-selected', 'true');
+  }
+  const activePane = activeTab ? document.getElementById(activeTab.getAttribute('aria-controls')) : null;
+  if (activePane) activePane.classList.add('active');
+}
+
+renderers.settings = async function() {
+  const currentTab = document.querySelector('.settings-tab.active')?.dataset.tab || 'config';
+  switchSettingsTab(currentTab);
+
+  if (currentTab === 'config') {
+    renderers.configRuntime();
+    renderers.configCredentials();
+    document.querySelectorAll('.config-tab[data-tab]').forEach(btn => {
+      btn.onclick = function() {
+        document.querySelectorAll('.config-tab').forEach(b => {
+          b.classList.remove('active');
+          b.setAttribute('aria-selected', 'false');
+        });
+        this.classList.add('active');
+        this.setAttribute('aria-selected', 'true');
+        document.querySelectorAll('.config-pane').forEach(p => p.style.display = 'none');
+        const tabId = 'config' + this.dataset.tab.charAt(0).toUpperCase() + this.dataset.tab.slice(1);
+        document.getElementById(tabId).style.display = 'block';
+      };
+    });
+  } else if (currentTab === 'ignorelists') {
+    await renderers.ignorelists();
+  } else if (currentTab === 'auth') {
+    await renderers.auth();
+  }
+
+  document.querySelectorAll('.settings-tab[data-tab]').forEach(btn => {
+    btn.onclick = function() {
+      switchSettingsTab(this.dataset.tab);
+      renderers.settings();
+    };
+  });
+};
+
+renderers.runs = async function() {
+  try {
+    await loadRuns();
+  } catch {
+    document.getElementById('runsList').innerHTML = '<p class="error-state" style="color:var(--error)">Failed to load runs</p>';
+  }
+};
+
+renderers.runDetail = async function(runId) {
+  await openRunDetail(runId);
+};
+
+renderers.auth = async function() {
+  const container = document.getElementById('authStatus');
+  container.innerHTML = '<p class="loading">Checking...</p>';
+  try {
+    const status = await api('/api/auth/status');
+    if (status.authenticated) {
+      container.innerHTML =
+        '<div class="card auth-card-ok">' +
+        '<h3 style="margin-bottom:var(--space-1)">\u2705 Authenticated</h3>' +
+        '<p style="color:var(--text-tertiary)">Expires: ' + formatTime(status.expires_at) + '</p>' +
+        '</div>' +
+        '<button id="reauthBtn" class="btn btn-secondary" style="margin-top:var(--space-3)">Re-authenticate</button>';
+      document.getElementById('reauthBtn')?.addEventListener('click', startAuthFlow);
+    } else {
+      container.innerHTML =
+        '<div class="card auth-card-fail">' +
+        '<h3 style="margin-bottom:var(--space-1)">\u274C Not Authenticated</h3>' +
+        '<p style="color:var(--text-tertiary)">Authenticate with Google to enable YouTube API access.</p>' +
+        '</div>' +
+        '<button id="authBtn" class="btn btn-primary" style="margin-top:var(--space-3)">Authenticate with Google</button>';
+      document.getElementById('authBtn')?.addEventListener('click', startAuthFlow);
+    }
+  } catch {
+    container.innerHTML = '<p class="error-state">Failed to check auth status</p>';
+  }
+};
+
+async function startAuthFlow() {
+  try {
+    const data = await api('/api/auth/login');
+    window.open(data.authorization_url, '_blank');
+    document.getElementById('authStatus').innerHTML =
+      '<div class="card">' +
+      '<h3 style="margin-bottom:var(--space-2)">Google Authorization</h3>' +
+      '<p style="color:var(--text-secondary);font-size:0.875rem">Opened Google consent page in a new tab.</p>' +
+      '<p style="color:var(--text-tertiary);font-size:0.8125rem;margin-top:var(--space-1)">After authorizing, you will be redirected back to this app.</p>' +
+      '<button id="checkAuthBtn" class="btn btn-primary" style="margin-top:var(--space-4)">Check Auth Status</button>' +
+      '</div>';
+    document.getElementById('checkAuthBtn')?.addEventListener('click', () => renderers.auth());
+  } catch (e) {
+    document.getElementById('authStatus').innerHTML =
+      '<p class="error-state">Failed: ' + escapeHtml(e.message) + '</p>';
+  }
+}
+
+// Overflow menu toggle — event delegation on document
+document.addEventListener('click', function(e) {
+  const overflowBtn = e.target.closest('.pipeline-overflow-btn');
+  if (overflowBtn) {
+    e.stopPropagation();
+    const overflowTrigger = overflowBtn.closest('.pipeline-overflow-trigger');
+    const menu = overflowTrigger.querySelector('.overflow-menu');
+    const isOpen = menu.classList.toggle('open');
+    overflowBtn.setAttribute('aria-expanded', isOpen);
+    return;
+  }
+  // Close all open overflow menus on outside click
+  document.querySelectorAll('.overflow-menu.open').forEach(menu => {
+    menu.classList.remove('open');
+    const btn = menu.closest('.overflow-menu-trigger')?.querySelector('[aria-expanded]');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  });
+});
+
+/* ─── Neon Terminal interactive JS ─── */
+const PAGES_WITH_FADE = ['dashboard', 'subscriptions', 'pipelines', 'runs', 'search-results', 'settings'];
+const origRenderPage = renderPage;
+renderPage = function(page) {
+  origRenderPage(page);
+  const el = document.getElementById(page);
+  if (el && PAGES_WITH_FADE.includes(page)) {
+    el.style.animation = 'none';
+    el.offsetHeight;
+    el.style.animation = 'fade-in-up .35s ease-out';
+  }
+};
+window.renderPage = renderPage;
+
+function animateCounter(el, target) {
+  if (!el || target === '-' || target === '...') return;
+  const num = parseInt(target);
+  if (isNaN(num)) return;
+  el.textContent = '0';
+  el.dataset.target = num;
+  const duration = Math.min(800, Math.max(300, num * 20));
+  const start = performance.now();
+  function tick(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const current = Math.round(eased * num);
+    el.textContent = num >= 1000 ? current.toLocaleString() : current;
+    if (progress < 1) requestAnimationFrame(tick);
+    else {
+      el.textContent = num >= 1000 ? num.toLocaleString() : num;
+      el.style.animation = 'counter-pop .25s ease-out';
+      setTimeout(() => { el.style.animation = ''; }, 300);
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+/* Hook into dashboard renderer to animate stats */
+const origDashboard = renderers.dashboard;
+renderers.dashboard = async function() {
+  await origDashboard();
+  setTimeout(() => {
+    const statIds = ['statSubs', 'statPipelines', 'statVideosAdded'];
+    statIds.forEach(id => {
+      const el = document.getElementById(id);
+      const val = el?.textContent;
+      if (val && val !== '-') animateCounter(el, val);
+    });
+  }, 100);
+};
+
+const initialPage = window.location.hash.slice(1) || 'dashboard';
+renderPage(initialPage);
+updateHealth();
+setInterval(updateHealth, 30000);
+
+/* ─── Mobile menu toggle ─── */
+const sidebar = document.getElementById('sidebar');
+const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+const sidebarOverlay = document.querySelector('.sidebar-overlay');
+
+function toggleMobileMenu() {
+  const isOpen = sidebar.classList.toggle('open');
+  mobileMenuToggle.setAttribute('aria-expanded', isOpen);
+  sidebarOverlay.hidden = !isOpen;
+  sidebarOverlay.setAttribute('aria-hidden', !isOpen);
+  if (isOpen) {
+    const firstLink = sidebar.querySelector('.sidebar-nav a');
+    if (firstLink) firstLink.focus();
+  }
+}
+
+mobileMenuToggle?.addEventListener('click', toggleMobileMenu);
+sidebarOverlay?.addEventListener('click', toggleMobileMenu);
+
+/* ─── Modal focus trap & ESC handler ─── */
+let lastFocusedElement = null;
+
+function trapFocus(modal) {
+  const focusableElements = modal.querySelectorAll(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  );
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements[focusableElements.length - 1];
+
+  function handleTab(e) {
+    if (e.key !== 'Tab') return;
+    if (e.shiftKey) {
+      if (document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      }
+    } else {
+      if (document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
+      }
+    }
+  }
+
+  modal.addEventListener('keydown', handleTab);
+  return () => modal.removeEventListener('keydown', handleTab);
+}
+
+function openModal(modal) {
+  lastFocusedElement = document.activeElement;
+  modal.hidden = false;
+  modal.classList.add('open');
+  const cleanup = trapFocus(modal);
+  modal._focusCleanup = cleanup;
+  const firstFocusable = modal.querySelector(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  );
+  if (firstFocusable) firstFocusable.focus();
+}
+
+function closeModal(modal) {
+  modal.classList.remove('open');
+  modal.hidden = true;
+  if (modal._focusCleanup) {
+    modal._focusCleanup();
+    modal._focusCleanup = null;
+  }
+  if (lastFocusedElement) {
+    lastFocusedElement.focus();
+    lastFocusedElement = null;
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.open').forEach(closeModal);
+    if (sidebar.classList.contains('open')) toggleMobileMenu();
+  }
+});
+
+/* Patch pipeline modal open/close */
+const origOpenPipelineModal = window.openPipelineModal;
+window.openPipelineModal = function(pipeline) {
+  origOpenPipelineModal(pipeline);
+  const modal = document.getElementById('pipelineModal');
+  openModal(modal);
+};
+
+document.getElementById('pipelineCancel')?.addEventListener('click', () => {
+  const modal = document.getElementById('pipelineModal');
+  closeModal(modal);
+});
+
+</script>
+</body>
+</html>
