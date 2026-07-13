@@ -81,8 +81,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # 5. Initialize YouTube client (only if authenticated)
     if state.oauth_manager.is_authenticated():
-        http = state.oauth_manager.get_http()
-        state.youtube_client = YouTubeAPIClient(http)
+        state.youtube_client = YouTubeAPIClient()
         log.info("YouTube API client initialized")
     else:
         log.warning("YouTube API client NOT initialized — not authenticated")

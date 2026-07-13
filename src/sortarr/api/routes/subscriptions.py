@@ -122,8 +122,8 @@ def list_playlists(
     Raises:
         HTTPException: 401 if not authenticated
     """
-    http = state.oauth_manager.get_http()
-    response = youtube.get_playlists(http)
+    credentials = state.oauth_manager.get_refreshed_credentials()
+    response = youtube.get_playlists(credentials)
 
     playlists = []
     for item in response.get("items", []):

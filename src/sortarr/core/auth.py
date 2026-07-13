@@ -223,8 +223,8 @@ class OAuthManager:
         credentials = self.get_credentials()
         return credentials is not None
 
-    def get_http(self) -> AuthorizedSession:
-        """Get an AuthorizedSession with auto-refresh.
+    def get_refreshed_credentials(self) -> Credentials:
+        """Get credentials with auto-refresh.
 
         Raises RuntimeError if not authenticated.
         """
@@ -241,7 +241,21 @@ class OAuthManager:
                     credentials.refresh(Request())
                     self.save_credentials(credentials)
                     log.info("OAuth token refreshed")
+                    # Reload to get the saved version
+                    credentials = self.get_credentials()
 
+        return credentials
+
+    def get_http(self) -> AuthorizedSession:
+        """Get an AuthorizedSession with auto-refresh.
+
+        Raises RuntimeError if not authenticated.
+        
+        DEPRECATED: Use get_refreshed_credentials() instead.
+        This method is kept for backward compatibility but will be removed
+        in a future version due to incompatibility with google-api-python-client.
+        """
+        credentials = self.get_refreshed_credentials()
         return AuthorizedSession(credentials)
 
     def migrate_from_pickle(self, pickle_path: str = "credentials.pickle") -> bool:

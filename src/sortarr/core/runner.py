@@ -46,7 +46,7 @@ from sortarr.models.pipeline import RunSummary
 from sortarr.models.youtube import Activity, Subscription, Video
 
 if TYPE_CHECKING:
-    from google.auth.transport.requests import AuthorizedSession
+    from google.oauth2.credentials import Credentials
 
     from sortarr.core.auth import OAuthManager
     from sortarr.core.youtube import YouTubeAPIClient
@@ -131,8 +131,8 @@ class Runner:
                 return run_id
 
             # Step 3: Fetch subscriptions
-            http = self.oauth_manager.get_http()
-            subs = self._fetch_all_subscriptions(http)
+            credentials = self.oauth_manager.get_refreshed_credentials()
+            subs = self._fetch_all_subscriptions(credentials)
             subscriptions.upsert_subscriptions(subs)
             run_summary.subscriptions_fetched = len(subs)
             log.info("fetched %d subscriptions", len(subs))
@@ -154,7 +154,7 @@ class Runner:
                     ).isoformat() + "Z"
 
                 acts = self._fetch_activities_for_subscription(
-                    http, sub.channel_id, published_after
+                    credentials, sub.channel_id, published_after
                 )
                 all_activities.extend(acts)
 
@@ -224,7 +224,7 @@ class Runner:
 
             # Step 9: Batch enrich durations
             enricher = Enricher(
-                lambda ids_csv: self.youtube_client.get_videos_batch(http, ids_csv)
+                lambda ids_csv: self.youtube_client.get_videos_batch(credentials, ids_csv)
             )
             duration_map, failed_ids = enricher.batch_fetch(unique_video_ids)
             run_summary.videos_enriched = len(duration_map)
@@ -304,7 +304,7 @@ class Runner:
                     if result is None:
                         # Passed duration filter — insert
                         self.youtube_client.insert_playlist_item(
-                            http, pipeline.playlist_id or "", activity.video_id
+                            credentials, pipeline.playlist_id or "", activity.video_id
                         )
                         videos.insert_video(
                             Video(
@@ -414,14 +414,14 @@ class Runner:
             conn.execute("DELETE FROM app_config WHERE key = 'run_active'")
             conn.commit()
 
-    def _fetch_all_subscriptions(self, http: AuthorizedSession) -> list[Subscription]:
+    def _fetch_all_subscriptions(self, credentials: Credentials) -> list[Subscription]:
         """Fetch all subscriptions with pagination."""
         subs: list[Subscription] = []
         page_token: str | None = None
 
         while True:
             response = self.youtube_client.get_subscriptions(
-                http, page_token=page_token
+                credentials, page_token=page_token
             )
             for item in response.get("items", []):
                 snippet = item.get("snippet", {})
@@ -443,7 +443,7 @@ class Runner:
         return subs
 
     def _fetch_activities_for_subscription(
-        self, http: AuthorizedSession, channel_id: str, published_after: str
+        self, credentials: Credentials, channel_id: str, published_after: str
     ) -> list[Activity]:
         """Fetch activities for a subscription with pagination."""
         acts: list[Activity] = []
@@ -451,7 +451,7 @@ class Runner:
 
         while True:
             response = self.youtube_client.get_activities(
-                http, channel_id, published_after, page_token=page_token
+                credentials, channel_id, published_after, page_token=page_token
             )
             for item in response.get("items", []):
                 snippet = item.get("snippet", {})

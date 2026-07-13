@@ -9,8 +9,10 @@ import logging
 import threading
 from typing import Any
 
-from google.auth.transport.requests import AuthorizedSession
+from google.oauth2.credentials import Credentials
+from google_auth_httplib2 import AuthorizedHttp
 from googleapiclient.discovery import build
+import httplib2
 
 log = logging.getLogger("sortarr.core.youtube")
 
@@ -60,19 +62,28 @@ def _increment_quota(cost: int) -> None:
 class YouTubeAPIClient:
     """YouTube Data API v3 client with quota tracking.
 
-    All methods accept an `http` parameter (AuthorizedSession) for token refresh.
+    All methods accept a `credentials` parameter for building authorized HTTP clients.
     """
 
     def __init__(self, api_key: str | None = None):
         """Initialize the client.
 
-        api_key is optional — OAuth credentials are passed via http parameter.
+        api_key is optional — OAuth credentials are passed via credentials parameter.
         """
         self.api_key = api_key
 
+    def _build_http(self, credentials: Credentials) -> AuthorizedHttp:
+        """Build an authorized HTTP client using httplib2.
+        
+        This avoids the 'body' parameter incompatibility between
+        google-api-python-client and requests.Session.
+        """
+        http = httplib2.Http()
+        return AuthorizedHttp(credentials, http=http)
+
     def get_subscriptions(
         self,
-        http: AuthorizedSession,
+        credentials: Credentials,
         page_token: str | None = None,
         max_results: int = 50,
     ) -> dict[str, Any]:
@@ -82,6 +93,7 @@ class YouTubeAPIClient:
         Returns: {"items": [...], "nextPageToken": "..."}
         """
         _increment_quota(1)
+        http = self._build_http(credentials)
         youtube = build("youtube", "v3", http=http)
         request = youtube.subscriptions().list(
             part="snippet", mine=True, maxResults=max_results, pageToken=page_token
@@ -90,7 +102,7 @@ class YouTubeAPIClient:
 
     def get_activities(
         self,
-        http: AuthorizedSession,
+        credentials: Credentials,
         channel_id: str,
         published_after: str,
         page_token: str | None = None,
@@ -103,6 +115,7 @@ class YouTubeAPIClient:
         Returns: {"items": [...], "nextPageToken": "..."}
         """
         _increment_quota(1)
+        http = self._build_http(credentials)
         youtube = build("youtube", "v3", http=http)
         request = youtube.activities().list(
             part="snippet,contentDetails",
@@ -114,7 +127,7 @@ class YouTubeAPIClient:
         return request.execute()
 
     def get_videos_batch(
-        self, http: AuthorizedSession, video_ids_csv: str
+        self, credentials: Credentials, video_ids_csv: str
     ) -> dict[str, Any]:
         """Fetch video details for up to 50 video IDs.
 
@@ -123,12 +136,13 @@ class YouTubeAPIClient:
         Returns: {"items": [...]}
         """
         _increment_quota(1)
+        http = self._build_http(credentials)
         youtube = build("youtube", "v3", http=http)
         request = youtube.videos().list(part="contentDetails", id=video_ids_csv)
         return request.execute()
 
     def get_playlists(
-        self, http: AuthorizedSession, max_results: int = 50
+        self, credentials: Credentials, max_results: int = 50
     ) -> dict[str, Any]:
         """Fetch user's YouTube playlists.
 
@@ -136,6 +150,7 @@ class YouTubeAPIClient:
         Returns: {"items": [...]}
         """
         _increment_quota(1)
+        http = self._build_http(credentials)
         youtube = build("youtube", "v3", http=http)
         request = youtube.playlists().list(
             part="snippet", mine=True, maxResults=max_results
@@ -143,7 +158,7 @@ class YouTubeAPIClient:
         return request.execute()
 
     def insert_playlist_item(
-        self, http: AuthorizedSession, playlist_id: str, video_id: str
+        self, credentials: Credentials, playlist_id: str, video_id: str
     ) -> dict[str, Any]:
         """Insert a video into a playlist.
 
@@ -151,6 +166,7 @@ class YouTubeAPIClient:
         Returns: {"id": "...", "snippet": {...}}
         """
         _increment_quota(50)
+        http = self._build_http(credentials)
         youtube = build("youtube", "v3", http=http)
         request = youtube.playlistItems().insert(
             part="snippet",
@@ -165,7 +181,7 @@ class YouTubeAPIClient:
 
     def get_playlist_items(
         self,
-        http: AuthorizedSession,
+        credentials: Credentials,
         playlist_id: str,
         page_token: str | None = None,
         max_results: int = 50,
@@ -176,6 +192,7 @@ class YouTubeAPIClient:
         Returns: {"items": [...], "nextPageToken": "..."}
         """
         _increment_quota(1)
+        http = self._build_http(credentials)
         youtube = build("youtube", "v3", http=http)
         request = youtube.playlistItems().list(
             part="snippet",
