@@ -12,6 +12,8 @@ timestamp: 2026-07-13T15:00:00Z
 Append a one-line entry whenever you add, edit, or remove a concept doc.
 Format: `- YYYY-MM-DD — <doc(s) touched> — <what changed and why>`
 
+- 2026-07-13 — auth.md — added automatic scope migration in get_credentials() to detect v1→v2 scope changes (4 scopes → 1 scope) and clear old credentials, forcing user re-authentication. Prevents OAuth token exchange errors from scope mismatches.
+
 - 2026-07-13 — api.md, dev-workflow.md — implemented Prometheus metrics endpoint (GET /metrics) with sortarr_runs_total, sortarr_quota_used_today, sortarr_videos_inserted_total, sortarr_run_duration_seconds; metrics recorded by runner.py at end of each run. Documented entry point (__main__.py) with CLI args (--host, --port, --log-level), graceful shutdown handlers (SIGTERM/SIGINT), and startup flow.
 
 - 2026-07-13 — api.md — implemented run management, preview, subscriptions, and stats routes: POST /api/run (trigger live run, 201 on success, 409 if run already active), GET /api/runs (list run history with ?limit=50), GET /api/runs/{id} (get run detail), GET /api/runs/{id}/decisions (get decisions for run with ?limit=500), POST /api/preview/mock (mock preview with synthetic activities, zero quota cost), POST /api/preview/cache (cache preview using activity_cache, zero quota cost), GET /api/subscriptions (list subscriptions from DB), GET /api/subscriptions/stats (per-subscription activity counts and last_fetched_at), GET /api/playlists (fetch user's YouTube playlists, requires auth, 1 quota unit), GET /api/stats (dashboard statistics: pipeline counts, subscription counts, activity cache size, run counts by status).

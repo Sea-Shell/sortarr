@@ -452,3 +452,72 @@ def test_handle_callback_restores_code_verifier(test_db: sqlite3.Connection, oau
         mock_flow.fetch_token.assert_called_once_with(code="auth_code")
 
 
+def test_scope_migration_clears_old_credentials(test_db: sqlite3.Connection, oauth_manager: OAuthManager, caplog):
+    """Test get_credentials clears old credentials when scopes change (v1→v2 migration)."""
+    import logging
+    
+    caplog.set_level(logging.WARNING)
+    
+    # Save credentials with old v1 scopes (4 scopes) directly to DB
+    # (bypass save_credentials to avoid immediate scope check)
+    old_v1_scopes = [
+        "https://www.googleapis.com/auth/youtubepartner",
+        "https://www.googleapis.com/auth/youtube.force-ssl",
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/youtube.readonly",
+    ]
+    token_data = {
+        "token": "old_token",
+        "refresh_token": "old_refresh",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "client_id": "test_client",
+        "client_secret": "test_secret",
+        "scopes": old_v1_scopes,
+    }
+    conn = test_db
+    conn.execute(
+        """
+        INSERT INTO oauth_credentials (id, token_json, created_at, updated_at)
+        VALUES (1, ?, datetime('now'), datetime('now'))
+        """,
+        (json.dumps(token_data),),
+    )
+    conn.commit()
+    
+    # Try to load credentials - should detect scope mismatch and clear
+    loaded = oauth_manager.get_credentials()
+    
+    # Verify credentials were cleared
+    assert loaded is None
+    assert not oauth_manager.is_authenticated()
+    
+    # Verify warning was logged
+    assert "OAuth scopes changed" in caplog.text
+    assert "clearing old credentials" in caplog.text
+    assert "User must re-authenticate" in caplog.text
+
+
+def test_scope_migration_preserves_matching_scopes(test_db: sqlite3.Connection, oauth_manager: OAuthManager):
+    """Test get_credentials preserves credentials when scopes match."""
+    # Save credentials with current v2 scopes (1 scope)
+    current_scopes = ["https://www.googleapis.com/auth/youtube.force-ssl"]
+    creds = Credentials(
+        token="current_token",
+        refresh_token="current_refresh",
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id="test_client",
+        client_secret="test_secret",
+        scopes=current_scopes,
+    )
+    oauth_manager.save_credentials(creds)
+    
+    # Load credentials - should NOT clear because scopes match
+    loaded = oauth_manager.get_credentials()
+    
+    # Verify credentials were preserved
+    assert loaded is not None
+    assert loaded.token == "current_token"
+    assert loaded.scopes == current_scopes
+    assert oauth_manager.is_authenticated()
+
+

@@ -1,10 +1,10 @@
 ---
 type: Process
 title: Sortarr Authentication
-description: Google OAuth flow for accessing the YouTube Data API — authorization URL, code exchange, DB-backed credential storage, auto-refresh.
+description: Google OAuth flow for accessing the YouTube Data API — authorization URL, code exchange, DB-backed credential storage, auto-refresh, automatic scope migration.
 resource: https://github.com/Sea-Shell/sortarr/blob/main/src/sortarr/core/auth.py
 tags: [sortarr, auth, oauth, youtube, google, database]
-timestamp: 2026-07-12T22:30:00Z
+timestamp: 2026-07-13T14:00:00Z
 ---
 
 # Why auth exists
@@ -32,13 +32,17 @@ credentials for every call.
    `google-auth-oauthlib.flow.Flow`, then saves them to the database.
 4. `get_credentials()` loads credentials from the database; `is_authenticated()`
    checks if valid credentials exist.
-5. `get_http()` returns an `AuthorizedSession` with auto-refresh: if credentials
+5. **Automatic scope migration**: `get_credentials()` detects when stored scopes
+   differ from the current `SCOPES` constant (e.g., v1→v2 migration from 4 scopes
+   to 1 scope) and automatically clears old credentials. User must re-authenticate
+   with the new scopes.
+6. `get_http()` returns an `AuthorizedSession` with auto-refresh: if credentials
    are expired and a refresh_token exists, it refreshes the token and saves the
    updated credentials back to the database.
 
 The OAuth manager (`OAuthManager`) handles the full lifecycle: authorization URL
-generation, token exchange, database persistence, loading, clearing, and
-auto-refresh on expiry.
+generation, token exchange, database persistence, loading, clearing, scope
+migration, and auto-refresh on expiry.
 
 # Database schema
 
@@ -72,3 +76,19 @@ The `token_json` column stores a JSON object with:
 `require_youtube()` (in `deps.py`) guards routes that need an authenticated
 client — endpoints fail clearly if credentials are missing or expired rather
 than erroring deep in a pipeline run.
+
+# v1→v2 Migration
+
+v1 used 4 YouTube OAuth scopes (overly broad):
+- `https://www.googleapis.com/auth/youtubepartner`
+- `https://www.googleapis.com/auth/youtube.force-ssl`
+- `https://www.googleapis.com/auth/youtube`
+- `https://www.googleapis.com/auth/youtube.readonly`
+
+v2 uses only 1 scope (minimum required for playlist management):
+- `https://www.googleapis.com/auth/youtube.force-ssl`
+
+When `get_credentials()` detects stored credentials with different scopes, it
+automatically clears them and logs a warning. Users must re-authenticate via
+`/api/auth/login` to grant the new scopes. This prevents OAuth token exchange
+errors caused by scope mismatches.

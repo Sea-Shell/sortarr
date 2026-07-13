@@ -129,7 +129,11 @@ class OAuthManager:
         conn.commit()
 
     def get_credentials(self) -> Credentials | None:
-        """Load credentials from the oauth_credentials table."""
+        """Load credentials from the oauth_credentials table.
+        
+        Automatically clears credentials if scopes have changed (e.g., v1→v2 migration).
+        User must re-authenticate with the new scopes.
+        """
         conn = get_connection()
         row = conn.execute(
             "SELECT token_json FROM oauth_credentials WHERE id = 1"
@@ -138,13 +142,26 @@ class OAuthManager:
             return None
 
         token_data = json.loads(row["token_json"])
+        stored_scopes = token_data.get("scopes")
+        
+        # Check if scopes have changed (e.g., v1 had 4 scopes, v2 has 1)
+        if stored_scopes and stored_scopes != SCOPES:
+            log.warning(
+                "OAuth scopes changed (old: %s, new: %s) — clearing old credentials. "
+                "User must re-authenticate.",
+                stored_scopes,
+                SCOPES,
+            )
+            self.clear_credentials()
+            return None
+        
         credentials = Credentials(
             token=token_data.get("token"),
             refresh_token=token_data.get("refresh_token"),
             token_uri=token_data.get("token_uri"),
             client_id=token_data.get("client_id"),
             client_secret=token_data.get("client_secret"),
-            scopes=token_data.get("scopes"),
+            scopes=stored_scopes,
         )
         return credentials
 
