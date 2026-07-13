@@ -4,7 +4,7 @@ title: Sortarr Scheduler
 description: APScheduler-based internal scheduling that runs the pipeline and playlist tracker on cron expressions, replacing an external Kubernetes CronJob.
 resource: https://github.com/Sea-Shell/sortarr/blob/main/src/sortarr/core/scheduler.py
 tags: [sortarr, scheduler, cron, apscheduler]
-timestamp: 2026-06-24T10:00:00Z
+timestamp: 2026-07-13T00:00:00Z
 ---
 
 # What it does
@@ -13,6 +13,18 @@ The app runs an **internal scheduler (APScheduler)** started with the app
 process (`core/scheduler.py`, wired in the [`lifespan()`](/knowledge/concepts/api.md)).
 No separate Kubernetes CronJob is needed — a legacy `kubernetes-manifests/cronjob.yaml`
 exists but is **superseded** by this internal scheduler.
+
+# Implementation
+
+The `PipelineScheduler` class wraps APScheduler's `BackgroundScheduler` with:
+
+- **Initialization**: Takes a cron expression and callback function
+- **Lifecycle**: `start()` registers the job and starts the scheduler, `stop()` shuts down cleanly
+- **Dynamic updates**: `update_schedule(cron_expression)` changes the schedule without restart
+- **Introspection**: `get_next_run_time()` returns the next scheduled execution time
+- **Misfire handling**: 3600-second (1 hour) grace time for missed runs
+
+The scheduler runs in the FastAPI lifespan context — starts on app startup, stops on shutdown.
 
 # Schedules
 

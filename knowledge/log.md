@@ -4,13 +4,15 @@ title: Sortarr Knowledge Bundle — Change Log
 description: Chronological record of changes to the knowledge/ OKF bundle. Append one line per change; newest at top.
 resource: https://github.com/Sea-Shell/sortarr
 tags: [sortarr, log, okf, changelog]
-timestamp: 2026-07-12T23:00:00Z
+timestamp: 2026-07-13T00:00:00Z
 ---
 
 # Change Log
 
 Append a one-line entry whenever you add, edit, or remove a concept doc.
 Format: `- YYYY-MM-DD — <doc(s) touched> — <what changed and why>`
+
+- 2026-07-13 — scheduler.md — added Implementation section documenting PipelineScheduler class (init, start, stop, update_schedule, get_next_run_time), misfire grace time (3600s), and FastAPI lifespan integration.
 
 - 2026-07-12 — pipeline.md — added Preview Modes section documenting mock preview (generates synthetic test activities per filter rule + baseline) and cache preview (runs filters on cached data), both with zero quota cost. Includes implementation details, mock types, acceptance criteria, and API endpoints.
 - 2026-07-12 — pipeline.md — rewrote for v2 Runner: documented 8-step run flow (startup cleanup, concurrency guard, subscription/activity fetching, cheap filters, batch enrichment, duration filters, inserts, watermarks, cache pruning), quota guard thresholds, error handling, and quota budget.
