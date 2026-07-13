@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useMemo } from 'react'
-import { useSubscriptions, useSubscriptionStats, useRunDecisions } from '@/hooks/use-api'
+import { useSubscriptions, useSubscriptionStats, useRuns, useRunDecisions } from '@/hooks/use-api'
 import { StatusCard } from '@/components/StatusCard'
 import { VideoRow, type VideoRowData } from '@/components/VideoRow'
 import { isApiError } from '@/lib/api-client'
@@ -15,12 +15,17 @@ function SubscriptionDetail() {
   
   const { data: subscriptions, isLoading: subsLoading, error: subsError } = useSubscriptions()
   const { isLoading: statsLoading } = useSubscriptionStats()
+  // Get the most recent run ID first
+  const { data: runs, isLoading: runsLoading } = useRuns({ limit: 1 })
+  const latestRunId = runs?.[0]?.id
   // Get decisions from the most recent run (limit 500)
-  // Note: We need to get the most recent run ID first, but for now we'll use a placeholder
-  // In a real implementation, we'd fetch the most recent run and use its ID
-  const { data: decisions, isLoading: decisionsLoading } = useRunDecisions('latest', { limit: 500 })
+  // The hook will automatically disable if latestRunId is empty
+  const { data: decisions, isLoading: decisionsLoading } = useRunDecisions(
+    latestRunId || '',
+    { limit: 500 }
+  )
   
-  const isLoading = subsLoading || statsLoading || decisionsLoading
+  const isLoading = subsLoading || statsLoading || runsLoading || decisionsLoading
   
   // Find the current subscription
   const subscription = subscriptions?.find((sub) => sub.id === id)
