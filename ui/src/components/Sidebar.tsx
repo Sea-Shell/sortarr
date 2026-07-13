@@ -25,8 +25,9 @@ export function Sidebar() {
       {/* Mobile hamburger button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-background)]"
-        aria-label="Toggle navigation"
+        className="md:hidden fixed top-4 left-4 z-50 p-3 rounded-md bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-background)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 min-h-[44px] min-w-[44px]"
+        aria-label={isOpen ? "Close navigation menu" : "Open navigation menu"}
+        aria-expanded={isOpen}
       >
         <svg
           className="w-6 h-6"

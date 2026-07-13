@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { memo } from "react"
 
 /**
  * Props for PaginationControls component
@@ -18,6 +19,7 @@ export interface PaginationControlsProps {
 
 /**
  * PaginationControls for navigating pages
+ * Memoized for performance optimization
  * 
  * @example
  * ```tsx
@@ -28,7 +30,7 @@ export interface PaginationControlsProps {
  * />
  * ```
  */
-export function PaginationControls({
+export const PaginationControls = memo(function PaginationControls({
   currentPage,
   totalPages,
   onPageChange,
@@ -50,19 +52,23 @@ export function PaginationControls({
   }
 
   return (
-    <div className={cn("flex items-center justify-between gap-4", className)}>
+    <nav 
+      className={cn("flex items-center justify-between gap-4", className)}
+      aria-label="Pagination navigation"
+    >
       <Button
         variant="outline"
         size="sm"
         onClick={handlePrevious}
         disabled={!canGoPrevious}
         className="gap-1"
+        aria-label="Go to previous page"
       >
-        <ChevronLeft className="size-4" />
+        <ChevronLeft className="size-4" aria-hidden="true" />
         Previous
       </Button>
 
-      <div className="text-sm text-muted-foreground">
+      <div className="text-sm text-muted-foreground" aria-live="polite" aria-atomic="true">
         Page {currentPage} of {totalPages}
       </div>
 
@@ -72,12 +78,13 @@ export function PaginationControls({
         onClick={handleNext}
         disabled={!canGoNext}
         className="gap-1"
+        aria-label="Go to next page"
       >
         Next
-        <ChevronRight className="size-4" />
+        <ChevronRight className="size-4" aria-hidden="true" />
       </Button>
-    </div>
+    </nav>
   )
-}
+})
 
 export default PaginationControls

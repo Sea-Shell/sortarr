@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils"
 import { ExternalLink, CheckCircle, Filter } from "lucide-react"
 import { LoadingSkeleton } from "./LoadingSkeleton"
+import { memo } from "react"
 
 /**
  * Video routing decision types
@@ -68,6 +69,7 @@ function formatDuration(duration?: string): string {
 /**
  * VideoRow displays a video with routing decision badge.
  * Shows routed (green) or filtered (gray) state with target/reason.
+ * Memoized for performance optimization.
  * 
  * @example
  * ```tsx
@@ -84,7 +86,7 @@ function formatDuration(duration?: string): string {
  * />
  * ```
  */
-export function VideoRow({
+const VideoRowComponent = memo(function VideoRow({
   video,
   variant,
   onClick,
@@ -116,7 +118,7 @@ export function VideoRow({
     <div
       className={cn(
         "flex items-center gap-3 p-3 rounded-md transition-all",
-        "hover:bg-muted cursor-pointer",
+        "hover:bg-muted cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         className
       )}
       onClick={handleClick}
@@ -126,7 +128,7 @@ export function VideoRow({
       aria-label={`Open ${video.title} in YouTube`}
     >
       {/* Thumbnail placeholder */}
-      <div className="w-32 h-18 bg-muted rounded flex items-center justify-center flex-shrink-0">
+      <div className="w-32 h-18 bg-muted rounded flex items-center justify-center flex-shrink-0" aria-hidden="true">
         <ExternalLink className="size-5 text-muted-foreground" />
       </div>
 
@@ -150,12 +152,12 @@ export function VideoRow({
           >
             {isRouted ? (
               <>
-                <CheckCircle className="size-3" />
+                <CheckCircle className="size-3" aria-hidden="true" />
                 → {video.routingTarget || "Routed"}
               </>
             ) : (
               <>
-                <Filter className="size-3" />
+                <Filter className="size-3" aria-hidden="true" />
                 Filtered: {video.routingTarget || "Unknown"}
               </>
             )}
@@ -164,8 +166,10 @@ export function VideoRow({
       </div>
     </div>
   )
-}
+})
 
-VideoRow.Skeleton = VideoRowSkeleton
+export const VideoRow = Object.assign(VideoRowComponent, {
+  Skeleton: VideoRowSkeleton,
+})
 
 export default VideoRow

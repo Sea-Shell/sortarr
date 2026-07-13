@@ -31,7 +31,7 @@ export interface SearchBarProps {
  * />
  * ```
  */
-export function SearchBar({
+export const SearchBar = React.memo(function SearchBar({
   value,
   onChange,
   placeholder = "Search...",
@@ -46,7 +46,7 @@ export function SearchBar({
     setLocalValue(value)
   }, [value])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value
     setLocalValue(newValue)
 
@@ -59,7 +59,7 @@ export function SearchBar({
     timeoutRef.current = setTimeout(() => {
       onChange(newValue)
     }, debounceMs)
-  }
+  }, [onChange, debounceMs])
 
   // Cleanup timeout on unmount
   React.useEffect(() => {
@@ -72,16 +72,20 @@ export function SearchBar({
 
   return (
     <div className={cn("relative", className)}>
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+      <Search 
+        className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" 
+        aria-hidden="true"
+      />
       <Input
-        type="text"
+        type="search"
         value={localValue}
         onChange={handleChange}
         placeholder={placeholder}
         className="pl-9"
+        aria-label={placeholder}
       />
     </div>
   )
-}
+})
 
 export default SearchBar

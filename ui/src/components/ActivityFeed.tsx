@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Video, Clock } from "lucide-react"
+import { memo } from "react"
 
 /**
  * Activity item representing a video
@@ -64,6 +65,7 @@ function ActivityFeedSkeleton({
 
 /**
  * ActivityFeed displays recent video activity
+ * Memoized for performance optimization
  * 
  * @example
  * ```tsx
@@ -73,7 +75,7 @@ function ActivityFeedSkeleton({
  * />
  * ```
  */
-export function ActivityFeed({
+const ActivityFeedComponent = memo(function ActivityFeed({
   activities,
   compact = false,
   isLoading = false,
@@ -93,7 +95,7 @@ export function ActivityFeed({
       <CardContent>
         {displayedActivities.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <Video className="size-12 text-muted-foreground mb-3" />
+            <Video className="size-12 text-muted-foreground mb-3" aria-hidden="true" />
             <p className="text-sm text-muted-foreground">No recent activity</p>
           </div>
         ) : (
@@ -101,14 +103,17 @@ export function ActivityFeed({
             {displayedActivities.map((activity) => (
               <div
                 key={activity.id}
-                className="flex gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                className="flex gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                tabIndex={0}
+                role="button"
+                aria-label={`View ${activity.title} from ${activity.channel}`}
               >
                 {/* Thumbnail */}
-                <div className="size-16 rounded bg-muted shrink-0 flex items-center justify-center overflow-hidden">
+                <div className="size-16 rounded bg-muted shrink-0 flex items-center justify-center overflow-hidden" aria-hidden="true">
                   {activity.thumbnailUrl ? (
                     <img
                       src={activity.thumbnailUrl}
-                      alt={activity.title}
+                      alt=""
                       className="size-full object-cover"
                     />
                   ) : (
@@ -125,13 +130,13 @@ export function ActivityFeed({
                     {activity.channel}
                   </p>
                   <div className="flex items-center gap-2 mt-1">
-                    <Clock className="size-3 text-muted-foreground" />
+                    <Clock className="size-3 text-muted-foreground" aria-hidden="true" />
                     <span className="text-xs text-muted-foreground">
                       {activity.timestamp}
                     </span>
                     {activity.playlist && (
                       <>
-                        <span className="text-xs text-muted-foreground">•</span>
+                        <span className="text-xs text-muted-foreground" aria-hidden="true">•</span>
                         <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">
                           {activity.playlist}
                         </span>
@@ -146,8 +151,10 @@ export function ActivityFeed({
       </CardContent>
     </Card>
   )
-}
+})
 
-ActivityFeed.Skeleton = ActivityFeedSkeleton
+export const ActivityFeed = Object.assign(ActivityFeedComponent, {
+  Skeleton: ActivityFeedSkeleton,
+})
 
 export default ActivityFeed

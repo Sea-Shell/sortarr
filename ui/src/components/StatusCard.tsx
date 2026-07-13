@@ -1,6 +1,7 @@
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { CheckCircle2, AlertTriangle, XCircle, Info, type LucideIcon } from "lucide-react"
+import { memo } from "react"
 
 /**
  * Status card variant types
@@ -81,6 +82,7 @@ function StatusCardSkeleton({ className }: { className?: string }) {
 
 /**
  * StatusCard displays a metric with visual status indicator
+ * Memoized for performance optimization
  * 
  * @example
  * ```tsx
@@ -92,7 +94,7 @@ function StatusCardSkeleton({ className }: { className?: string }) {
  * />
  * ```
  */
-export function StatusCard({
+const StatusCardComponent = memo(function StatusCard({
   variant,
   icon: CustomIcon,
   label,
@@ -124,6 +126,7 @@ export function StatusCard({
               "flex size-10 items-center justify-center rounded-full",
               config.bgColor
             )}
+            aria-hidden="true"
           >
             <Icon className={cn("size-5", config.iconColor)} />
           </div>
@@ -144,8 +147,10 @@ export function StatusCard({
       </CardHeader>
     </Card>
   )
-}
+})
 
-StatusCard.Skeleton = StatusCardSkeleton
+export const StatusCard = Object.assign(StatusCardComponent, {
+  Skeleton: StatusCardSkeleton,
+})
 
 export default StatusCard
