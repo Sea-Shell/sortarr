@@ -14,6 +14,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RunsRouteImport } from './routes/runs'
 import { Route as PipelinesRouteImport } from './routes/pipelines'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PipelinesIndexRouteImport } from './routes/pipelines.index'
 import { Route as SubscriptionsIdRouteImport } from './routes/subscriptions.$id'
 import { Route as PipelinesNewRouteImport } from './routes/pipelines.new'
 import { Route as PipelinesIdRouteImport } from './routes/pipelines.$id'
@@ -43,6 +44,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PipelinesIndexRoute = PipelinesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PipelinesRoute,
+} as any)
 const SubscriptionsIdRoute = SubscriptionsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -68,16 +74,17 @@ export interface FileRoutesByFullPath {
   '/pipelines/$id': typeof PipelinesIdRoute
   '/pipelines/new': typeof PipelinesNewRoute
   '/subscriptions/$id': typeof SubscriptionsIdRoute
+  '/pipelines/': typeof PipelinesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/pipelines': typeof PipelinesRouteWithChildren
   '/runs': typeof RunsRoute
   '/settings': typeof SettingsRoute
   '/subscriptions': typeof SubscriptionsRouteWithChildren
   '/pipelines/$id': typeof PipelinesIdRoute
   '/pipelines/new': typeof PipelinesNewRoute
   '/subscriptions/$id': typeof SubscriptionsIdRoute
+  '/pipelines': typeof PipelinesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +96,7 @@ export interface FileRoutesById {
   '/pipelines/$id': typeof PipelinesIdRoute
   '/pipelines/new': typeof PipelinesNewRoute
   '/subscriptions/$id': typeof SubscriptionsIdRoute
+  '/pipelines/': typeof PipelinesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,16 +109,17 @@ export interface FileRouteTypes {
     | '/pipelines/$id'
     | '/pipelines/new'
     | '/subscriptions/$id'
+    | '/pipelines/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/pipelines'
     | '/runs'
     | '/settings'
     | '/subscriptions'
     | '/pipelines/$id'
     | '/pipelines/new'
     | '/subscriptions/$id'
+    | '/pipelines'
   id:
     | '__root__'
     | '/'
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
     | '/pipelines/$id'
     | '/pipelines/new'
     | '/subscriptions/$id'
+    | '/pipelines/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -168,6 +178,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pipelines/': {
+      id: '/pipelines/'
+      path: '/'
+      fullPath: '/pipelines/'
+      preLoaderRoute: typeof PipelinesIndexRouteImport
+      parentRoute: typeof PipelinesRoute
+    }
     '/subscriptions/$id': {
       id: '/subscriptions/$id'
       path: '/$id'
@@ -195,11 +212,13 @@ declare module '@tanstack/react-router' {
 interface PipelinesRouteChildren {
   PipelinesIdRoute: typeof PipelinesIdRoute
   PipelinesNewRoute: typeof PipelinesNewRoute
+  PipelinesIndexRoute: typeof PipelinesIndexRoute
 }
 
 const PipelinesRouteChildren: PipelinesRouteChildren = {
   PipelinesIdRoute: PipelinesIdRoute,
   PipelinesNewRoute: PipelinesNewRoute,
+  PipelinesIndexRoute: PipelinesIndexRoute,
 }
 
 const PipelinesRouteWithChildren = PipelinesRoute._addFileChildren(
