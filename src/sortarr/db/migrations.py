@@ -175,10 +175,18 @@ CREATE TABLE IF NOT EXISTS oauth_credentials (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
+
+-- OAuth State (for PKCE flow, single row)
+CREATE TABLE IF NOT EXISTS oauth_state (
+    id INTEGER PRIMARY KEY CHECK(id = 1),
+    state TEXT NOT NULL,
+    code_verifier TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
 """
 
 # Expected table count — sanity-check against schema drift.
-EXPECTED_TABLE_COUNT = 14
+EXPECTED_TABLE_COUNT = 15
 
 # Expected index names — for verification.
 EXPECTED_INDEXES = [

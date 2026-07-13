@@ -39,6 +39,8 @@ class OAuthManager:
         """Generate OAuth 2.0 authorization URL.
 
         User should be redirected to this URL to grant consent.
+        Stores the OAuth state and PKCE code_verifier in the database
+        for later verification in the callback.
 
         Raises:
             FileNotFoundError: If client_secret.json does not exist
@@ -52,18 +54,30 @@ class OAuthManager:
         flow = Flow.from_client_secrets_file(
             self.client_secret_path, scopes=SCOPES, redirect_uri=self.redirect_uri
         )
-        auth_url, _ = flow.authorization_url(
+        auth_url, state = flow.authorization_url(
             access_type="offline", include_granted_scopes="true", prompt="consent"
         )
+        
+        # Store state and code_verifier for callback verification
+        self._save_oauth_state(state, flow.code_verifier)
+        log.info("OAuth state saved to database")
+        
         return auth_url
 
-    def handle_callback(self, code: str) -> None:
+    def handle_callback(self, code: str, state: str) -> None:
         """Exchange authorization code for tokens and save to DB.
 
-        code: Authorization code from OAuth callback query parameter
+        Verifies the OAuth state parameter matches what was stored during
+        authorization to prevent CSRF attacks. Restores the PKCE code_verifier
+        so the token exchange succeeds.
+
+        Args:
+            code: Authorization code from OAuth callback query parameter
+            state: State parameter from OAuth callback (for CSRF protection)
 
         Raises:
             FileNotFoundError: If client_secret.json does not exist
+            ValueError: If state parameter is invalid or missing
         """
         if not Path(self.client_secret_path).exists():
             raise FileNotFoundError(
@@ -71,9 +85,17 @@ class OAuthManager:
                 f"Download client_secret.json from Google Cloud Console "
                 f"(APIs & Services > Credentials) and place it at this path."
             )
+        
+        # Verify state and retrieve code_verifier
+        code_verifier = self._verify_oauth_state(state)
+        
+        # Create flow and restore code_verifier for PKCE
         flow = Flow.from_client_secrets_file(
             self.client_secret_path, scopes=SCOPES, redirect_uri=self.redirect_uri
         )
+        flow.code_verifier = code_verifier
+        
+        # Exchange code for tokens
         flow.fetch_token(code=code)
         credentials = flow.credentials
         self.save_credentials(credentials)
@@ -132,6 +154,52 @@ class OAuthManager:
         conn.execute("DELETE FROM oauth_credentials WHERE id = 1")
         conn.commit()
         log.info("OAuth credentials cleared from database")
+
+    def _save_oauth_state(self, state: str, code_verifier: str) -> None:
+        """Save OAuth state and PKCE code_verifier to database.
+        
+        Args:
+            state: OAuth state parameter (for CSRF protection)
+            code_verifier: PKCE code verifier (for token exchange)
+        """
+        conn = get_connection()
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO oauth_state (id, state, code_verifier, created_at)
+            VALUES (1, ?, ?, datetime('now'))
+            """,
+            (state, code_verifier),
+        )
+        conn.commit()
+
+    def _verify_oauth_state(self, state: str) -> str:
+        """Verify OAuth state parameter and return code_verifier.
+        
+        Args:
+            state: OAuth state parameter from callback
+            
+        Returns:
+            code_verifier: PKCE code verifier for token exchange
+            
+        Raises:
+            ValueError: If state is invalid or missing
+        """
+        conn = get_connection()
+        row = conn.execute(
+            "SELECT state, code_verifier FROM oauth_state WHERE id = 1"
+        ).fetchone()
+        
+        if not row:
+            raise ValueError("OAuth state not found - authorization may have expired")
+        
+        if row["state"] != state:
+            raise ValueError("Invalid OAuth state parameter - possible CSRF attack")
+        
+        # Clear the state after successful verification (one-time use)
+        conn.execute("DELETE FROM oauth_state WHERE id = 1")
+        conn.commit()
+        
+        return row["code_verifier"]
 
     def is_authenticated(self) -> bool:
         """Check if valid credentials exist."""

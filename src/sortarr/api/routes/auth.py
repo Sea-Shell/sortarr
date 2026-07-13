@@ -66,12 +66,15 @@ async def login(request: Request):
 async def callback(
     request: Request,
     code: str = Query(..., description="Authorization code from OAuth provider"),
+    state: str = Query(..., description="OAuth state parameter for CSRF protection"),
 ):
     """Handle OAuth callback and exchange code for tokens.
 
+    Verifies the state parameter to prevent CSRF attacks.
     Saves credentials to database.
     Returns success message.
     Raises 503 if client_secret.json is missing.
+    Raises 400 if state verification fails.
     """
     oauth = _get_oauth_manager(request)
 
@@ -79,9 +82,16 @@ async def callback(
         raise HTTPException(status_code=400, detail="missing authorization code")
 
     try:
-        oauth.handle_callback(code)
+        oauth.handle_callback(code, state)
         log.info("OAuth callback successful — credentials saved")
         return {"message": "authentication successful", "authenticated": True}
+    except ValueError as e:
+        # State verification failed
+        log.error("OAuth state verification failed: %s", e)
+        raise HTTPException(
+            status_code=400,
+            detail=str(e),
+        ) from e
     except FileNotFoundError as e:
         log.error("OAuth client secret file missing: %s", e)
         raise HTTPException(

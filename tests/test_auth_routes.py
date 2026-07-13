@@ -20,6 +20,12 @@ def _create_test_db() -> sqlite3.Connection:
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS oauth_state (
+            id INTEGER PRIMARY KEY CHECK(id = 1),
+            state TEXT NOT NULL,
+            code_verifier TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS app_config (
             key TEXT PRIMARY KEY,
             value TEXT NOT NULL
@@ -123,18 +129,18 @@ async def test_login_returns_503_when_client_secret_missing(
 async def test_callback_exchanges_code_and_saves_credentials(
     app_with_oauth, mock_oauth_manager
 ):
-    """GET /auth/callback?code=... should exchange code and save tokens."""
+    """GET /auth/callback?code=...&state=... should exchange code and save tokens."""
     mock_oauth_manager.handle_callback.return_value = None
 
     transport = ASGITransport(app=app_with_oauth)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/api/auth/callback?code=test_auth_code")
+        resp = await client.get("/api/auth/callback?code=test_auth_code&state=test_state")
 
     assert resp.status_code == 200
     data = resp.json()
     assert data["message"] == "authentication successful"
     assert data["authenticated"] is True
-    mock_oauth_manager.handle_callback.assert_called_once_with("test_auth_code")
+    mock_oauth_manager.handle_callback.assert_called_once_with("test_auth_code", "test_state")
 
 
 @pytest.mark.asyncio
@@ -154,7 +160,7 @@ async def test_callback_returns_500_on_oauth_error(app_with_oauth, mock_oauth_ma
 
     transport = ASGITransport(app=app_with_oauth)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/api/auth/callback?code=bad_code")
+        resp = await client.get("/api/auth/callback?code=bad_code&state=test_state")
 
     assert resp.status_code == 500
     data = resp.json()
@@ -174,12 +180,28 @@ async def test_callback_returns_503_when_client_secret_missing(
 
     transport = ASGITransport(app=app_with_oauth)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/api/auth/callback?code=test_code")
+        resp = await client.get("/api/auth/callback?code=test_code&state=test_state")
 
     assert resp.status_code == 503
     data = resp.json()
     assert "OAuth client secret not found" in data["detail"]
     assert "Google Cloud Console" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_callback_returns_400_on_invalid_state(app_with_oauth, mock_oauth_manager):
+    """GET /auth/callback should return 400 if state verification fails."""
+    mock_oauth_manager.handle_callback.side_effect = ValueError(
+        "Invalid OAuth state parameter - possible CSRF attack"
+    )
+
+    transport = ASGITransport(app=app_with_oauth)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.get("/api/auth/callback?code=test_code&state=wrong_state")
+
+    assert resp.status_code == 400
+    data = resp.json()
+    assert "Invalid OAuth state parameter" in data["detail"]
 
 
 # Status endpoint tests
@@ -302,7 +324,7 @@ async def test_full_oauth_flow_integration(app_with_oauth, mock_oauth_manager):
         assert resp.status_code == 302
 
         # 2. Callback succeeds
-        resp = await client.get("/api/auth/callback?code=test_code")
+        resp = await client.get("/api/auth/callback?code=test_code&state=test_state")
         assert resp.status_code == 200
         assert resp.json()["authenticated"] is True
 

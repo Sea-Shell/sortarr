@@ -172,6 +172,16 @@ def test_token_refresh_on_expired(test_db: sqlite3.Connection, oauth_manager: OA
 
 def test_handle_callback_saves_credentials(test_db: sqlite3.Connection, oauth_manager: OAuthManager):
     """Test handle_callback correctly parses token response and saves."""
+    # First, simulate get_authorization_url to save state
+    with patch("sortarr.core.auth.Flow.from_client_secrets_file") as mock_flow_factory:
+        mock_flow = Mock()
+        mock_flow.authorization_url.return_value = ("https://auth.url", "test_state_123")
+        mock_flow.code_verifier = "test_code_verifier_xyz"
+        mock_flow_factory.return_value = mock_flow
+        
+        oauth_manager.get_authorization_url()
+    
+    # Now handle callback with the same state
     mock_flow = Mock()
     mock_credentials = Credentials(
         token="callback_token",
@@ -183,7 +193,7 @@ def test_handle_callback_saves_credentials(test_db: sqlite3.Connection, oauth_ma
     mock_flow.credentials = mock_credentials
 
     with patch("sortarr.core.auth.Flow.from_client_secrets_file", return_value=mock_flow):
-        oauth_manager.handle_callback("test_auth_code")
+        oauth_manager.handle_callback("test_auth_code", "test_state_123")
 
     # Verify credentials were saved
     loaded = oauth_manager.get_credentials()
@@ -362,5 +372,83 @@ def test_migrate_from_pickle_corrupt_file(test_db: sqlite3.Connection, oauth_man
     assert result is False
     assert "failed to migrate credentials" in caplog.text
     assert not oauth_manager.is_authenticated()
+
+
+def test_oauth_state_storage_and_verification(test_db: sqlite3.Connection, oauth_manager: OAuthManager):
+    """Test OAuth state and code_verifier are stored and verified correctly."""
+    # Save state
+    oauth_manager._save_oauth_state("test_state_abc", "test_verifier_xyz")
+    
+    # Verify state
+    code_verifier = oauth_manager._verify_oauth_state("test_state_abc")
+    assert code_verifier == "test_verifier_xyz"
+    
+    # Verify state is cleared after verification (one-time use)
+    with pytest.raises(ValueError, match="OAuth state not found"):
+        oauth_manager._verify_oauth_state("test_state_abc")
+
+
+def test_oauth_state_verification_fails_with_wrong_state(test_db: sqlite3.Connection, oauth_manager: OAuthManager):
+    """Test OAuth state verification fails with incorrect state parameter."""
+    # Save state
+    oauth_manager._save_oauth_state("correct_state", "test_verifier")
+    
+    # Try to verify with wrong state
+    with pytest.raises(ValueError, match="Invalid OAuth state parameter"):
+        oauth_manager._verify_oauth_state("wrong_state")
+
+
+def test_oauth_state_verification_fails_when_no_state_stored(test_db: sqlite3.Connection, oauth_manager: OAuthManager):
+    """Test OAuth state verification fails when no state is stored."""
+    with pytest.raises(ValueError, match="OAuth state not found"):
+        oauth_manager._verify_oauth_state("any_state")
+
+
+def test_get_authorization_url_saves_state(test_db: sqlite3.Connection, oauth_manager: OAuthManager):
+    """Test get_authorization_url saves OAuth state to database."""
+    with patch("sortarr.core.auth.Flow.from_client_secrets_file") as mock_flow_factory:
+        mock_flow = Mock()
+        mock_flow.authorization_url.return_value = ("https://auth.url?state=xyz", "state_xyz")
+        mock_flow.code_verifier = "verifier_123"
+        mock_flow_factory.return_value = mock_flow
+        
+        url = oauth_manager.get_authorization_url()
+        
+        # Verify state was saved
+        conn = test_db
+        row = conn.execute("SELECT state, code_verifier FROM oauth_state WHERE id = 1").fetchone()
+        assert row is not None
+        assert row["state"] == "state_xyz"
+        assert row["code_verifier"] == "verifier_123"
+
+
+def test_handle_callback_verifies_state(test_db: sqlite3.Connection, oauth_manager: OAuthManager):
+    """Test handle_callback verifies state parameter."""
+    # Try callback without saved state
+    with pytest.raises(ValueError, match="OAuth state not found"):
+        oauth_manager.handle_callback("code123", "invalid_state")
+
+
+def test_handle_callback_restores_code_verifier(test_db: sqlite3.Connection, oauth_manager: OAuthManager):
+    """Test handle_callback restores code_verifier for PKCE."""
+    # Save state and verifier
+    oauth_manager._save_oauth_state("state_abc", "verifier_xyz")
+    
+    # Mock flow
+    mock_flow = Mock()
+    mock_credentials = Credentials(
+        token="test_token",
+        refresh_token="test_refresh",
+        token_uri="https://oauth2.googleapis.com/token",
+    )
+    mock_flow.credentials = mock_credentials
+    
+    with patch("sortarr.core.auth.Flow.from_client_secrets_file", return_value=mock_flow):
+        oauth_manager.handle_callback("auth_code", "state_abc")
+        
+        # Verify code_verifier was set on flow
+        assert mock_flow.code_verifier == "verifier_xyz"
+        # Verify fetch_token was called
+        mock_flow.fetch_token.assert_called_once_with(code="auth_code")
 
 
