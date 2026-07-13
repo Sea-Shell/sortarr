@@ -33,6 +33,10 @@ export interface Config {
   log_level: string;
   schedule?: string;
   ignore_list?: string[];
+  reprocess_days?: number;
+  activity_limit?: number;
+  subscription_limit?: number;
+  public_url?: string;
   [key: string]: unknown; // Allow additional config fields
 }
 
