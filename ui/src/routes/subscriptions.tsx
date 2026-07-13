@@ -23,12 +23,17 @@ function SubscriptionsList() {
     (sub.channel_title?.toLowerCase() ?? '').includes(searchTerm.toLowerCase())
   ) || []
   
+  // Build lookup map from stats array (keyed by subscription_id)
+  const statsBySubscriptionId = new Map(
+    stats?.map((s) => [s.subscription_id, s.activities_count]) ?? []
+  )
+  
   // Map to SubscriptionCardData format
   const subscriptionCards: SubscriptionCardData[] = filteredSubscriptions.map((sub) => ({
     id: sub.subscription_id,
     title: sub.channel_title ?? 'Unnamed Channel',
     channelId: sub.channel_id,
-    activityCount: stats?.by_pipeline[sub.channel_id] || 0,
+    activityCount: statsBySubscriptionId.get(sub.subscription_id) ?? 0,
     lastSeenAt: undefined, // API doesn't provide this yet
   }))
   

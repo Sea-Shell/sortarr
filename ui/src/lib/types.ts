@@ -93,11 +93,14 @@ export interface Subscription {
   channel_title: string;
 }
 
-export interface SubscriptionStats {
-  total: number;
-  monitored: number;
-  by_pipeline: Record<string, number>;
+export interface SubscriptionStatsItem {
+  subscription_id: string;
+  channel_title: string;
+  activities_count: number;
+  last_fetched_at: string | null;
 }
+
+export type SubscriptionStats = SubscriptionStatsItem[];
 
 // Run types
 export interface Run {
