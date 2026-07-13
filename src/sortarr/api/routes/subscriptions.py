@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 log = logging.getLogger("sortarr.api.routes.subscriptions")
 
-router = APIRouter(tags=["subscriptions"])
+router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
 
 
 class SubscriptionResponse(BaseModel):
@@ -37,7 +37,7 @@ class SubscriptionStatsResponse(BaseModel):
     last_fetched_at: str | None = Field(description="Last fetch timestamp (ISO 8601)")
 
 
-@router.get("/subscriptions", response_model=list[SubscriptionResponse])
+@router.get("", response_model=list[SubscriptionResponse])
 def list_subscriptions(
     state: AppState = Depends(get_state),
 ) -> list[SubscriptionResponse]:
@@ -62,7 +62,7 @@ def list_subscriptions(
     ]
 
 
-@router.get("/subscriptions/stats", response_model=list[SubscriptionStatsResponse])
+@router.get("/stats", response_model=list[SubscriptionStatsResponse])
 def get_subscription_stats(
     state: AppState = Depends(get_state),
 ) -> list[SubscriptionStatsResponse]:
