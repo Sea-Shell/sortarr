@@ -118,7 +118,17 @@ def migrate_v1_to_v2(conn: sqlite3.Connection) -> dict:
     # Import v2 schema
     from sortarr.db.migrations import V3_SCHEMA_SQL
     
-    # Step 1: Create v2 tables (CREATE IF NOT EXISTS is safe)
+    # Step 0: Rename v1 tables FIRST to avoid conflicts
+    log.info("renaming v1 tables to _v1_archive suffix")
+    v1_tables = ["videos", "last_run", "channel", "subscription", "playlist"]
+    for table in v1_tables:
+        try:
+            conn.execute(f"ALTER TABLE {table} RENAME TO {table}_v1_archive")
+        except sqlite3.OperationalError as e:
+            # Table might not exist or already renamed
+            log.debug(f"could not rename {table}: {e}")
+    
+    # Step 1: Create v2 tables (now safe after v1 tables renamed)
     log.info("creating v2 schema tables")
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(V3_SCHEMA_SQL)
@@ -126,7 +136,7 @@ def migrate_v1_to_v2(conn: sqlite3.Connection) -> dict:
     # Step 2: Migrate subscriptions
     log.info("migrating subscriptions")
     cursor = conn.execute("""
-        SELECT id, title, timestamp FROM subscription
+        SELECT id, title, timestamp FROM subscription_v1_archive
     """)
     v1_subscriptions = cursor.fetchall()
     
@@ -158,7 +168,7 @@ def migrate_v1_to_v2(conn: sqlite3.Connection) -> dict:
     pipeline_id = str(uuid.uuid4())
     
     # Get playlist info from v1 (if exists)
-    cursor = conn.execute("SELECT id, title FROM playlist LIMIT 1")
+    cursor = conn.execute("SELECT id, title FROM playlist_v1_archive LIMIT 1")
     playlist_row = cursor.fetchone()
     if playlist_row:
         playlist_id, playlist_title = playlist_row
@@ -191,7 +201,7 @@ def migrate_v1_to_v2(conn: sqlite3.Connection) -> dict:
     # Step 4: Migrate videos
     log.info("migrating videos")
     cursor = conn.execute("""
-        SELECT videoId, timestamp, title, subscriptionId FROM videos
+        SELECT videoId, timestamp, title, subscriptionId FROM videos_v1_archive
     """)
     v1_videos = cursor.fetchall()
     
@@ -220,7 +230,7 @@ def migrate_v1_to_v2(conn: sqlite3.Connection) -> dict:
     
     # Step 5: Migrate last_run timestamp
     log.info("migrating last_run timestamp")
-    cursor = conn.execute("SELECT timestamp FROM last_run WHERE id = 1 LIMIT 1")
+    cursor = conn.execute("SELECT timestamp FROM last_run_v1_archive WHERE id = 1 LIMIT 1")
     last_run_row = cursor.fetchone()
     if last_run_row:
         last_run_timestamp = last_run_row[0]
@@ -240,16 +250,6 @@ def migrate_v1_to_v2(conn: sqlite3.Connection) -> dict:
         INSERT OR REPLACE INTO app_config (key, value)
         VALUES ('migrated_from_v1_at', ?)
     """, (now_iso,))
-    
-    # Step 7: Rename v1 tables (keep for safety, don't drop)
-    log.info("renaming v1 tables to _v1_archive suffix")
-    v1_tables = ["videos", "last_run", "channel", "subscription", "playlist"]
-    for table in v1_tables:
-        try:
-            conn.execute(f"ALTER TABLE {table} RENAME TO {table}_v1_archive")
-        except sqlite3.OperationalError as e:
-            # Table might not exist or already renamed
-            log.debug(f"could not rename {table}: {e}")
     
     conn.commit()
     log.info("v1 → v2 migration complete")

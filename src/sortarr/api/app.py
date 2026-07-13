@@ -57,7 +57,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # 1. Initialize database
     conn = init_db(state.settings.database_file)
-    apply_schema(conn)
+    apply_schema(conn, auto_migrate=True)
     log.info("database initialized and schema applied")
 
     # 2. Reset quota counter on startup
