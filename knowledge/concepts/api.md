@@ -45,9 +45,9 @@ Route modules in `src/sortarr/api/routes/`:
 | `health.py`           | `GET /api/health` — system status, auth state, next scheduled run, counts (pipelines, subscriptions), quota usage |
 | `config.py`           | `GET /api/config` (runtime config), `PUT /api/config` (partial update: schedule, reprocess_days, activity_limit, subscription_limit, published_after) |
 | `auth.py`             | `GET /api/auth/login` (redirect to Google OAuth), `GET /api/auth/callback` (exchange code), `GET /api/auth/status` (check auth state), `POST /api/auth/logout` (clear credentials) — see [auth](/knowledge/concepts/auth.md) |
+| `pipelines.py`        | `GET /api/pipelines` (list all), `GET /api/pipelines/{id}` (get one), `POST /api/pipelines` (create), `PUT /api/pipelines/{id}` (update), `DELETE /api/pipelines/{id}` (delete), `PUT /api/pipelines/reorder` (reorder), `PUT /api/pipelines/{id}/ignore-lists` (set ignore lists), `PUT /api/pipelines/{id}/selectors` (set selectors), `PUT /api/pipelines/{id}/subscriptions` (set subscriptions) |
 | `subscriptions.py`    | `GET /api/subscriptions` (syncs from YouTube API when available, falls back to DB cache), `GET /api/subscriptions/{cid}/activity` (YouTube API → activity_cache fallback) |
 | `rules.py`            | CRUD `/api/rules` (legacy routing rules)                                                                         |
-| `pipelines.py`        | CRUD pipelines, selectors, attachments, ignore-lists CRUD, `GET /api/playlists` (YouTube API with DB fallback from `playlist` + `pipelines` tables) |
 | `pipeline.py`         | `POST /api/pipeline/trigger`, `GET /api/pipeline/runs`, `GET /api/pipeline/runs/search`, `GET /api/pipeline/runs/{id}`, `GET /api/pipeline/runs/{id}/decisions` |
 | `playlist_tracker.py` | Playlist reconciliation endpoints                                                                                |
 | `stats.py`            | Aggregate stats                                                                                                  |
@@ -63,16 +63,26 @@ persists results to `pipeline_runs` in the [database](/knowledge/concepts/databa
 # Models
 
 Request/response models are pydantic (`api/models.py` and `models/`):
-`HealthResponse`, `PipelineCreate/Update/Response`, `ReorderRequest`,
-`IgnoreList*`, `PipelineRunResponse`, etc.
+`HealthResponse`, `ConfigResponse`, `ConfigUpdate`, `PipelineCreate/Update/Response`, 
+`ReorderRequest`, `SetJunctionRequest`, `IgnoreList*`, `PipelineRunResponse`, etc.
 
-### Pipeline Reorder API
+### Pipeline CRUD API
 
-`PUT /api/pipelines/reorder` accepts `ReorderRequest { pipeline_ids: list[str] }`
+Full CRUD for pipelines with junction table management:
+
+- `GET /api/pipelines` — list all pipelines with junction table data (ignore_list_ids, selector_ids, subscription_ids)
+- `GET /api/pipelines/{id}` — get single pipeline by ID (404 if not found)
+- `POST /api/pipelines` — create pipeline (201), accepts junction table IDs in request body
+- `PUT /api/pipelines/{id}` — partial update (only non-None fields updated)
+- `DELETE /api/pipelines/{id}` — delete pipeline (204), cascades to junction tables via FK
+- `PUT /api/pipelines/reorder` — reorder pipelines by setting sort_order from list position
+- `PUT /api/pipelines/{id}/ignore-lists` — replace ignore list associations
+- `PUT /api/pipelines/{id}/selectors` — replace selector associations (501 not implemented)
+- `PUT /api/pipelines/{id}/subscriptions` — replace subscription associations
+
+All junction table endpoints accept `SetJunctionRequest { ids: list[str] }` and replace
+existing associations atomically. The reorder endpoint accepts `ReorderRequest { pipeline_ids: list[str] }`
 and assigns sequential `sort_order` (0, 1, 2, ...) based on position in the list.
-The handler validates the list is non-empty and returns 400 if empty, 500 on DB
-failure. This replaced the previous swap-based `orders` dict API to fix the
-issue where all pipelines had `sort_order=0` and swapping was a no-op.
 
 # YouTube API Client
 

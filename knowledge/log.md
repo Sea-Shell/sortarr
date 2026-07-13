@@ -4,13 +4,15 @@ title: Sortarr Knowledge Bundle — Change Log
 description: Chronological record of changes to the knowledge/ OKF bundle. Append one line per change; newest at top.
 resource: https://github.com/Sea-Shell/sortarr
 tags: [sortarr, log, okf, changelog]
-timestamp: 2026-07-13T10:30:00Z
+timestamp: 2026-07-13T11:00:00Z
 ---
 
 # Change Log
 
 Append a one-line entry whenever you add, edit, or remove a concept doc.
 Format: `- YYYY-MM-DD — <doc(s) touched> — <what changed and why>`
+
+- 2026-07-13 — api.md — implemented full pipeline CRUD routes: GET /api/pipelines (list all), GET /api/pipelines/{id} (get one), POST /api/pipelines (create with junction tables), PUT /api/pipelines/{id} (partial update), DELETE /api/pipelines/{id} (cascade delete), PUT /api/pipelines/reorder (reorder), PUT /api/pipelines/{id}/ignore-lists (set ignore lists), PUT /api/pipelines/{id}/selectors (set selectors - 501), PUT /api/pipelines/{id}/subscriptions (set subscriptions); added ReorderRequest and SetJunctionRequest models.
 
 - 2026-07-13 — api.md — implemented health and config routes: GET /api/health (status, auth state, next scheduled run, counts, quota), GET/PUT /api/config (runtime config with partial updates and scheduler rescheduling).
 
