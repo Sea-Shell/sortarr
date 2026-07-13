@@ -28,13 +28,13 @@ function SubscriptionDetail() {
   const isLoading = subsLoading || statsLoading || runsLoading || decisionsLoading
   
   // Find the current subscription
-  const subscription = subscriptions?.find((sub) => sub.id === id)
+  const subscription = subscriptions?.find((sub) => sub.subscription_id === id)
   
   // Filter decisions for this subscription
   const subscriptionDecisions = useMemo(() => {
     if (!decisions || !subscription) return []
-    // Filter by pipeline_id since we don't have subscription_id in decisions
-    return decisions.filter((d) => d.pipeline_id === subscription.pipeline_id)
+    // Filter by channel_id since we don't have subscription_id in decisions
+    return decisions.filter((d) => d.pipeline_id === subscription.channel_id)
   }, [decisions, subscription])
   
   // Calculate stats
@@ -88,9 +88,9 @@ function SubscriptionDetail() {
         <div className="space-y-6">
           {/* Header */}
           <div>
-            <h1 className="text-2xl font-bold">{subscription.name}</h1>
+            <h1 className="text-2xl font-bold">{subscription.channel_title}</h1>
             <p className="text-muted-foreground mt-2">
-              Pipeline: {subscription.pipeline_id}
+              Channel ID: {subscription.channel_id}
             </p>
           </div>
           

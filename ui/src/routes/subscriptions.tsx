@@ -20,15 +20,15 @@ function SubscriptionsList() {
   
   // Filter subscriptions by search term
   const filteredSubscriptions = subscriptions?.filter((sub) =>
-    sub.name.toLowerCase().includes(searchTerm.toLowerCase())
+    (sub.channel_title?.toLowerCase() ?? '').includes(searchTerm.toLowerCase())
   ) || []
   
   // Map to SubscriptionCardData format
   const subscriptionCards: SubscriptionCardData[] = filteredSubscriptions.map((sub) => ({
-    id: sub.id,
-    title: sub.name,
-    channelId: sub.pipeline_id,
-    activityCount: stats?.by_pipeline[sub.pipeline_id] || 0,
+    id: sub.subscription_id,
+    title: sub.channel_title ?? 'Unnamed Channel',
+    channelId: sub.channel_id,
+    activityCount: stats?.by_pipeline[sub.channel_id] || 0,
     lastSeenAt: undefined, // API doesn't provide this yet
   }))
   

@@ -88,12 +88,9 @@ export interface Playlist {
 
 // Subscription types
 export interface Subscription {
-  id: string;
-  pipeline_id: string;
-  name: string;
-  path: string;
-  monitored: boolean;
-  created_at: string;
+  subscription_id: string;
+  channel_id: string;
+  channel_title: string;
 }
 
 export interface SubscriptionStats {
