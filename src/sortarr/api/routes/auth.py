@@ -84,7 +84,7 @@ async def callback(
     try:
         oauth.handle_callback(code, state)
         log.info("OAuth callback successful — credentials saved")
-        return {"message": "authentication successful", "authenticated": True}
+        return RedirectResponse(url="/settings", status_code=302)
     except ValueError as e:
         # State verification failed
         log.error("OAuth state verification failed: %s", e)
