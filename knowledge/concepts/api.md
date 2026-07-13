@@ -44,7 +44,7 @@ Route modules in `src/sortarr/api/routes/`:
 | --------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `health.py`           | `GET /api/health`                                                                                                |
 | `config.py`           | `GET/PUT /api/config`, `GET/POST /api/config/ignores`, `DELETE /api/config/ignores/{id}`                         |
-| `auth.py`             | `GET /api/auth/status`, `POST /api/auth/device`, `POST /api/auth/poll` — see [auth](/knowledge/concepts/auth.md) |
+| `auth.py`             | `GET /api/auth/login` (redirect to Google OAuth), `GET /api/auth/callback` (exchange code), `GET /api/auth/status` (check auth state), `POST /api/auth/logout` (clear credentials) — see [auth](/knowledge/concepts/auth.md) |
 | `subscriptions.py`    | `GET /api/subscriptions` (syncs from YouTube API when available, falls back to DB cache), `GET /api/subscriptions/{cid}/activity` (YouTube API → activity_cache fallback) |
 | `rules.py`            | CRUD `/api/rules` (legacy routing rules)                                                                         |
 | `pipelines.py`        | CRUD pipelines, selectors, attachments, ignore-lists CRUD, `GET /api/playlists` (YouTube API with DB fallback from `playlist` + `pipelines` tables) |
