@@ -26,7 +26,7 @@ import type { Pipeline } from '../lib/types';
 
 const pipelineSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  playlist_id: z.string().nullable(),
+  playlist_id: z.string().min(1, 'Playlist is required'),
   subscription_scope: z.enum(['all', 'selected']),
   duration_min_seconds: z.number().nullable(),
   duration_max_seconds: z.number().nullable(),
@@ -74,7 +74,7 @@ export default function PipelineForm({ pipeline, onSuccess, onCancel }: Pipeline
     resolver: zodResolver(pipelineSchema),
     defaultValues: {
       name: pipeline?.name || '',
-      playlist_id: pipeline?.playlist_id || null,
+      playlist_id: pipeline?.playlist_id || '',
       subscription_scope: (pipeline?.subscription_scope as 'all' | 'selected') || 'all',
       duration_min_seconds: pipeline?.duration_min_seconds || null,
       duration_max_seconds: pipeline?.duration_max_seconds || null,
@@ -115,8 +115,12 @@ export default function PipelineForm({ pipeline, onSuccess, onCancel }: Pipeline
         });
         onSuccess(result.id);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to save pipeline:', err);
+      
+      // Extract error message from API response
+      const message = err.response?.data?.detail || err.message || 'Failed to save pipeline';
+      alert(`Error: ${message}`);
     }
   };
 
@@ -157,16 +161,15 @@ export default function PipelineForm({ pipeline, onSuccess, onCancel }: Pipeline
             </div>
 
             <div>
-              <Label htmlFor="playlist_id">Destination Playlist</Label>
+              <Label htmlFor="playlist_id">Destination Playlist *</Label>
               <Select
                 value={watch('playlist_id') || ''}
-                onValueChange={(value) => setValue('playlist_id', value || null)}
+                onValueChange={(value) => setValue('playlist_id', value || '')}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a playlist" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
                   {playlists?.map((playlist) => (
                     <SelectItem key={playlist.id} value={playlist.id}>
                       {playlist.title}
@@ -174,6 +177,9 @@ export default function PipelineForm({ pipeline, onSuccess, onCancel }: Pipeline
                   ))}
                 </SelectContent>
               </Select>
+              {errors.playlist_id && (
+                <p className="text-sm text-red-500 mt-1">{errors.playlist_id.message}</p>
+              )}
             </div>
           </CardContent>
         </Card>
