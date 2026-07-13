@@ -1,14 +1,29 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import PipelineForm from '../components/PipelineForm';
 
 export const Route = createFileRoute('/pipelines/new')({
-  component: CreatePipeline,
-})
+  component: NewPipeline,
+});
 
-function CreatePipeline() {
+function NewPipeline() {
+  const navigate = useNavigate();
+
+  const handleSuccess = (id?: string) => {
+    if (id) {
+      navigate({ to: `/pipelines/${id}` });
+    } else {
+      navigate({ to: '/pipelines' });
+    }
+  };
+
+  const handleCancel = () => {
+    navigate({ to: '/pipelines' });
+  };
+
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold">Create Pipeline</h1>
-      <p className="text-gray-600 mt-2">Create pipeline placeholder</p>
+      <h1 className="text-3xl font-bold mb-6">Create Pipeline</h1>
+      <PipelineForm onSuccess={handleSuccess} onCancel={handleCancel} />
     </div>
-  )
+  );
 }

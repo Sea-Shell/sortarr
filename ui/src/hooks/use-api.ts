@@ -15,6 +15,7 @@ import type {
   PreviewRequest,
   PreviewResponse,
   Stats,
+  Playlist,
 } from '../lib/types';
 
 /**
@@ -26,6 +27,7 @@ export const queryKeys = {
   config: ['config'] as const,
   pipelines: ['pipelines'] as const,
   pipeline: (id: string) => ['pipelines', id] as const,
+  playlists: ['playlists'] as const,
   subscriptions: ['subscriptions'] as const,
   subscriptionStats: ['subscriptions', 'stats'] as const,
   runs: ['runs'] as const,
@@ -195,12 +197,12 @@ export const useCreatePipeline = (options?: UseMutationOptions<Pipeline, ApiErro
 /**
  * Update pipeline
  */
-export const useUpdatePipeline = (options?: UseMutationOptions<Pipeline, ApiError, UpdatePipelineRequest>) => {
+export const useUpdatePipeline = (options?: UseMutationOptions<Pipeline, ApiError, { id: string; data: UpdatePipelineRequest }>) => {
   const queryClient = useQueryClient();
   
-  return useMutation<Pipeline, ApiError, UpdatePipelineRequest>({
-    mutationFn: async (data: UpdatePipelineRequest) => {
-      const response = await apiClient.put<Pipeline>(`/api/pipelines/${data.id}`, data);
+  return useMutation<Pipeline, ApiError, { id: string; data: UpdatePipelineRequest }>({
+    mutationFn: async ({ id, data }: { id: string; data: UpdatePipelineRequest }) => {
+      const response = await apiClient.put<Pipeline>(`/api/pipelines/${id}`, data);
       return response.data;
     },
     onSuccess: (data) => {
@@ -254,6 +256,20 @@ export const useSubscriptionStats = (options?: UseQueryOptions<SubscriptionStats
     queryKey: queryKeys.subscriptionStats,
     queryFn: async () => {
       const response = await apiClient.get<SubscriptionStats>('/api/subscriptions/stats');
+      return response.data;
+    },
+    ...options,
+  });
+};
+
+/**
+ * Get user's YouTube playlists
+ */
+export const usePlaylists = (options?: UseQueryOptions<Playlist[], ApiError>) => {
+  return useQuery<Playlist[], ApiError>({
+    queryKey: queryKeys.playlists,
+    queryFn: async () => {
+      const response = await apiClient.get<Playlist[]>('/api/subscriptions/playlists');
       return response.data;
     },
     ...options,

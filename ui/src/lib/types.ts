@@ -40,30 +40,46 @@ export interface Config {
 export interface Pipeline {
   id: string;
   name: string;
-  type: 'sonarr' | 'radarr';
   enabled: boolean;
-  schedule?: string;
-  filters: PipelineFilter[];
-  created_at: string;
-  updated_at: string;
-}
-
-export interface PipelineFilter {
-  type: string;
-  config: Record<string, unknown>;
-  enabled: boolean;
+  order: number;
+  playlist_id: string | null;
+  subscription_scope: string; // "all" or "selected"
+  duration_min_seconds: number | null;
+  duration_max_seconds: number | null;
+  selector_mode: string; // "AND" or "OR"
+  ignore_list_ids: string[];
+  selector_ids: string[];
+  subscription_ids: string[];
 }
 
 export interface CreatePipelineRequest {
   name: string;
-  type: 'sonarr' | 'radarr';
-  enabled?: boolean;
-  schedule?: string;
-  filters?: PipelineFilter[];
+  playlist_id?: string | null;
+  subscription_scope?: string;
+  duration_min_seconds?: number | null;
+  duration_max_seconds?: number | null;
+  selector_mode?: string;
+  ignore_list_ids?: string[];
+  selector_ids?: string[];
+  subscription_ids?: string[];
 }
 
-export interface UpdatePipelineRequest extends Partial<CreatePipelineRequest> {
+export interface UpdatePipelineRequest {
+  name?: string;
+  enabled?: boolean;
+  playlist_id?: string | null;
+  order?: number;
+  subscription_scope?: string;
+  duration_min_seconds?: number | null;
+  duration_max_seconds?: number | null;
+  selector_mode?: string;
+}
+
+// Playlist types
+export interface Playlist {
   id: string;
+  title: string;
+  thumbnail?: string;
 }
 
 // Subscription types
