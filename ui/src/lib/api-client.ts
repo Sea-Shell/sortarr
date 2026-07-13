@@ -10,10 +10,11 @@ export interface ApiError {
 }
 
 /**
- * Get base URL from environment or default to localhost
+ * Get base URL from environment or default to relative paths
+ * Since UI and API are served from same origin, use relative URLs
  */
 const getBaseURL = (): string => {
-  return import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+  return import.meta.env.VITE_API_BASE_URL || '';
 };
 
 /**
