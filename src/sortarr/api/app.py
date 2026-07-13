@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import TYPE_CHECKING
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from sortarr.config import load_settings
 from sortarr.core.auth import OAuthManager
@@ -172,5 +176,37 @@ def create_app() -> FastAPI:
     app.include_router(subscriptions.router, prefix="/api")
     app.include_router(stats.router, prefix="/api")
     app.include_router(metrics.router)  # no /api prefix for Prometheus convention
+
+    # Serve UI static files (must be after API routes)
+    # In container: /app/ui/dist (not /app/src/ui/dist)
+    ui_dist = Path(__file__).parent.parent.parent.parent / "ui" / "dist"
+    if ui_dist.exists():
+        # Mount static assets (JS, CSS bundles)
+        assets_dir = ui_dist / "assets"
+        if assets_dir.exists():
+            app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+            log.info("mounted UI assets from %s", assets_dir)
+
+        # Serve static files at root (favicon, icons)
+        @app.get("/favicon.svg")
+        async def favicon() -> FileResponse:
+            return FileResponse(ui_dist / "favicon.svg")
+
+        @app.get("/icons.svg")
+        async def icons() -> FileResponse:
+            return FileResponse(ui_dist / "icons.svg")
+
+        # Catch-all route for SPA routing (must be last)
+        @app.get("/{full_path:path}")
+        async def serve_spa(full_path: str) -> FileResponse:
+            """Serve index.html for all non-API routes (SPA routing)."""
+            index_file = ui_dist / "index.html"
+            if index_file.exists():
+                return FileResponse(index_file)
+            raise HTTPException(status_code=404, detail="Not Found")
+
+        log.info("UI static files configured from %s", ui_dist)
+    else:
+        log.warning("UI dist directory not found at %s — UI will not be served", ui_dist)
 
     return app
