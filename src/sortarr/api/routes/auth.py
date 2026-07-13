@@ -134,3 +134,44 @@ async def logout(request: Request):
     oauth.clear_credentials()
     log.info("user logged out — credentials cleared")
     return LogoutResponse(message="logged out successfully")
+
+
+@router.post("/revoke", response_model=LogoutResponse)
+async def revoke(request: Request):
+    """Revoke OAuth token with Google and clear local credentials.
+
+    This forces Google to forget previously granted scopes.
+    Use this before re-authenticating if you see scope mismatch errors.
+
+    Returns confirmation message.
+    """
+    import httpx
+
+    oauth = _get_oauth_manager(request)
+    credentials = oauth.get_credentials()
+
+    # Revoke token with Google if we have one
+    if credentials and credentials.token:
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    "https://oauth2.googleapis.com/revoke",
+                    params={"token": credentials.token},
+                    headers={"content-type": "application/x-www-form-urlencoded"},
+                )
+                if response.status_code == 200:
+                    log.info("OAuth token revoked with Google")
+                else:
+                    log.warning(
+                        "Google revoke returned %d: %s",
+                        response.status_code,
+                        response.text,
+                    )
+        except Exception as e:
+            log.error("Failed to revoke token with Google: %s", e)
+            # Continue anyway to clear local credentials
+
+    # Clear local credentials
+    oauth.clear_credentials()
+    log.info("OAuth access revoked — credentials cleared")
+    return LogoutResponse(message="access revoked successfully")

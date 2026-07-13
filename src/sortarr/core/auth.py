@@ -55,7 +55,7 @@ class OAuthManager:
             self.client_secret_path, scopes=SCOPES, redirect_uri=self.redirect_uri
         )
         auth_url, state = flow.authorization_url(
-            access_type="offline", include_granted_scopes="true", prompt="consent"
+            access_type="offline", include_granted_scopes="false", prompt="consent"
         )
         
         # Store state and code_verifier for callback verification
