@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { usePipelines, useUpdatePipeline, useDeletePipeline } from '../hooks/use-api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -151,16 +151,23 @@ interface PipelineCardProps {
 }
 
 function PipelineCard({ pipeline, onToggle, onDelete, isUpdating, isDeleting }: PipelineCardProps) {
+  const navigate = useNavigate();
+
+  const handleCardClick = () => {
+    navigate({ to: '/pipelines/$id', params: { id: pipeline.id } });
+  };
+
   return (
-    <Card className="hover:shadow-lg transition-shadow">
+    <Card 
+      className="hover:shadow-lg transition-shadow cursor-pointer" 
+      onClick={handleCardClick}
+    >
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <Link to="/pipelines/$id" params={{ id: pipeline.id }}>
-              <CardTitle className="hover:underline cursor-pointer">
-                {pipeline.name}
-              </CardTitle>
-            </Link>
+            <CardTitle>
+              {pipeline.name}
+            </CardTitle>
             <CardDescription className="mt-1">
               {pipeline.playlist_id ? 'Destination configured' : 'No destination set'}
             </CardDescription>
@@ -170,6 +177,7 @@ function PipelineCard({ pipeline, onToggle, onDelete, isUpdating, isDeleting }: 
               checked={pipeline.enabled}
               onCheckedChange={(checked) => onToggle(pipeline.id, checked)}
               disabled={isUpdating}
+              onClick={(e) => e.stopPropagation()}
             />
           </div>
         </div>
@@ -205,7 +213,10 @@ function PipelineCard({ pipeline, onToggle, onDelete, isUpdating, isDeleting }: 
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onDelete(pipeline.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(pipeline.id);
+            }}
             disabled={isDeleting}
           >
             <Trash2 className="h-4 w-4 mr-1" />
