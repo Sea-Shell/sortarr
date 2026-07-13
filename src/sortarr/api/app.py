@@ -151,9 +151,11 @@ def create_app() -> FastAPI:
     )
 
     # Register routes
-    from sortarr.api.routes import auth
+    from sortarr.api.routes import auth, config, health, pipelines
 
     app.include_router(auth.router, prefix="/api")
+    app.include_router(health.router, prefix="/api")
+    app.include_router(config.router, prefix="/api")
+    app.include_router(pipelines.router, prefix="/api")
 
     return app
-

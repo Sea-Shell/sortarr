@@ -4,7 +4,7 @@ title: Sortarr HTTP API
 description: FastAPI app factory, shared AppState, dependency providers, and the REST routes for config, auth, pipelines, subscriptions, and metrics.
 resource: https://github.com/Sea-Shell/sortarr/tree/main/src/sortarr/api
 tags: [sortarr, api, fastapi, rest]
-timestamp: 2026-07-13T09:00:00Z
+timestamp: 2026-07-13T11:00:00Z
 ---
 
 # App factory
@@ -42,8 +42,8 @@ Route modules in `src/sortarr/api/routes/`:
 
 | Module                | Endpoints (summary)                                                                                              |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `health.py`           | `GET /api/health`                                                                                                |
-| `config.py`           | `GET/PUT /api/config`, `GET/POST /api/config/ignores`, `DELETE /api/config/ignores/{id}`                         |
+| `health.py`           | `GET /api/health` — system status, auth state, next scheduled run, counts (pipelines, subscriptions), quota usage |
+| `config.py`           | `GET /api/config` (runtime config), `PUT /api/config` (partial update: schedule, reprocess_days, activity_limit, subscription_limit, published_after) |
 | `auth.py`             | `GET /api/auth/login` (redirect to Google OAuth), `GET /api/auth/callback` (exchange code), `GET /api/auth/status` (check auth state), `POST /api/auth/logout` (clear credentials) — see [auth](/knowledge/concepts/auth.md) |
 | `subscriptions.py`    | `GET /api/subscriptions` (syncs from YouTube API when available, falls back to DB cache), `GET /api/subscriptions/{cid}/activity` (YouTube API → activity_cache fallback) |
 | `rules.py`            | CRUD `/api/rules` (legacy routing rules)                                                                         |

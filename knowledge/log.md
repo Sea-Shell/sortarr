@@ -4,13 +4,15 @@ title: Sortarr Knowledge Bundle — Change Log
 description: Chronological record of changes to the knowledge/ OKF bundle. Append one line per change; newest at top.
 resource: https://github.com/Sea-Shell/sortarr
 tags: [sortarr, log, okf, changelog]
-timestamp: 2026-07-13T09:00:00Z
+timestamp: 2026-07-13T10:30:00Z
 ---
 
 # Change Log
 
 Append a one-line entry whenever you add, edit, or remove a concept doc.
 Format: `- YYYY-MM-DD — <doc(s) touched> — <what changed and why>`
+
+- 2026-07-13 — api.md — implemented health and config routes: GET /api/health (status, auth state, next scheduled run, counts, quota), GET/PUT /api/config (runtime config with partial updates and scheduler rescheduling).
 
 - 2026-07-13 — api.md — updated auth.py route table to reflect OAuth 2.0 flow (GET /auth/login → redirect, GET /auth/callback → exchange code, GET /auth/status → check auth state, POST /auth/logout → clear credentials); removed outdated device/poll endpoints.
 
