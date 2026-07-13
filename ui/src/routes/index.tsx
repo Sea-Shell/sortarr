@@ -27,7 +27,6 @@ function Dashboard() {
   } = useHealth()
   
   const { 
-    data: stats, 
     isLoading: statsLoading,
     error: statsError,
     refetch: refetchStats 
@@ -70,7 +69,7 @@ function Dashboard() {
     videosRouted: {
       variant: 'neutral' as const,
       label: 'Videos Routed',
-      value: stats?.total_runs ? runs?.reduce((sum, run) => sum + run.videos_inserted, 0).toString() || '0' : '0',
+      value: runs?.length ? runs.reduce((sum, run) => sum + run.videos_inserted, 0).toString() : '0',
       timestamp: 'All time'
     },
     activeSubs: {

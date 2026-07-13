@@ -99,11 +99,8 @@ test.describe('Dashboard', () => {
     // Wait for page to load
     await page.waitForLoadState('networkidle');
     
-    // Check if authentication warning is present (it may or may not be depending on backend state)
-    const authWarning = page.locator('text=/not authenticated/i');
-    
-    // We don't assert it's visible because it depends on backend state
     // Just verify the page loaded without crashing
+    // (authentication warning may or may not be present depending on backend state)
     await expect(page.locator('body')).toBeVisible();
   });
 });
