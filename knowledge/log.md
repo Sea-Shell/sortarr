@@ -4,13 +4,15 @@ title: Sortarr Knowledge Bundle — Change Log
 description: Chronological record of changes to the knowledge/ OKF bundle. Append one line per change; newest at top.
 resource: https://github.com/Sea-Shell/sortarr
 tags: [sortarr, log, okf, changelog]
-timestamp: 2026-07-13T11:00:00Z
+timestamp: 2026-07-13T14:30:00Z
 ---
 
 # Change Log
 
 Append a one-line entry whenever you add, edit, or remove a concept doc.
 Format: `- YYYY-MM-DD — <doc(s) touched> — <what changed and why>`
+
+- 2026-07-13 — api.md — implemented run management, preview, subscriptions, and stats routes: POST /api/run (trigger live run, 201 on success, 409 if run already active), GET /api/runs (list run history with ?limit=50), GET /api/runs/{id} (get run detail), GET /api/runs/{id}/decisions (get decisions for run with ?limit=500), POST /api/preview/mock (mock preview with synthetic activities, zero quota cost), POST /api/preview/cache (cache preview using activity_cache, zero quota cost), GET /api/subscriptions (list subscriptions from DB), GET /api/subscriptions/stats (per-subscription activity counts and last_fetched_at), GET /api/playlists (fetch user's YouTube playlists, requires auth, 1 quota unit), GET /api/stats (dashboard statistics: pipeline counts, subscription counts, activity cache size, run counts by status).
 
 - 2026-07-13 — api.md — implemented full pipeline CRUD routes: GET /api/pipelines (list all), GET /api/pipelines/{id} (get one), POST /api/pipelines (create with junction tables), PUT /api/pipelines/{id} (partial update), DELETE /api/pipelines/{id} (cascade delete), PUT /api/pipelines/reorder (reorder), PUT /api/pipelines/{id}/ignore-lists (set ignore lists), PUT /api/pipelines/{id}/selectors (set selectors - 501), PUT /api/pipelines/{id}/subscriptions (set subscriptions); added ReorderRequest and SetJunctionRequest models.
 

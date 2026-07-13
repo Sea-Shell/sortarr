@@ -4,7 +4,7 @@ title: Sortarr HTTP API
 description: FastAPI app factory, shared AppState, dependency providers, and the REST routes for config, auth, pipelines, subscriptions, and metrics.
 resource: https://github.com/Sea-Shell/sortarr/tree/main/src/sortarr/api
 tags: [sortarr, api, fastapi, rest]
-timestamp: 2026-07-13T11:00:00Z
+timestamp: 2026-07-13T14:30:00Z
 ---
 
 # App factory
@@ -46,19 +46,26 @@ Route modules in `src/sortarr/api/routes/`:
 | `config.py`           | `GET /api/config` (runtime config), `PUT /api/config` (partial update: schedule, reprocess_days, activity_limit, subscription_limit, published_after) |
 | `auth.py`             | `GET /api/auth/login` (redirect to Google OAuth), `GET /api/auth/callback` (exchange code), `GET /api/auth/status` (check auth state), `POST /api/auth/logout` (clear credentials) — see [auth](/knowledge/concepts/auth.md) |
 | `pipelines.py`        | `GET /api/pipelines` (list all), `GET /api/pipelines/{id}` (get one), `POST /api/pipelines` (create), `PUT /api/pipelines/{id}` (update), `DELETE /api/pipelines/{id}` (delete), `PUT /api/pipelines/reorder` (reorder), `PUT /api/pipelines/{id}/ignore-lists` (set ignore lists), `PUT /api/pipelines/{id}/selectors` (set selectors), `PUT /api/pipelines/{id}/subscriptions` (set subscriptions) |
-| `subscriptions.py`    | `GET /api/subscriptions` (syncs from YouTube API when available, falls back to DB cache), `GET /api/subscriptions/{cid}/activity` (YouTube API → activity_cache fallback) |
-| `rules.py`            | CRUD `/api/rules` (legacy routing rules)                                                                         |
-| `pipeline.py`         | `POST /api/pipeline/trigger`, `GET /api/pipeline/runs`, `GET /api/pipeline/runs/search`, `GET /api/pipeline/runs/{id}`, `GET /api/pipeline/runs/{id}/decisions` |
-| `playlist_tracker.py` | Playlist reconciliation endpoints                                                                                |
-| `stats.py`            | Aggregate stats                                                                                                  |
+| `pipeline.py`         | `POST /api/run` (trigger live run, 201 on success, 409 if run already active), `GET /api/runs` (list run history with ?limit=50), `GET /api/runs/{id}` (get run detail), `GET /api/runs/{id}/decisions` (get decisions for run with ?limit=500) |
+| `preview.py`          | `POST /api/preview/mock` (mock preview with synthetic activities, zero quota cost), `POST /api/preview/cache` (cache preview using activity_cache, zero quota cost) — both accept `PreviewRequest { pipeline_id?: str }` |
+| `subscriptions.py`    | `GET /api/subscriptions` (list subscriptions from DB), `GET /api/subscriptions/stats` (per-subscription activity counts and last_fetched_at), `GET /api/playlists` (fetch user's YouTube playlists, requires auth, 1 quota unit) |
+| `stats.py`            | `GET /api/stats` (dashboard statistics: pipeline counts, subscription counts, activity cache size, run counts by status) |
 | (root)                | `GET /metrics` — Prometheus                                                                                      |
 
 # Triggering a run
 
-`POST /api/pipeline/trigger` runs the **same** logic as the
-[scheduler](/knowledge/concepts/scheduler.md), via `pipeline_runner.execute_pipeline`,
-which constructs a [`PipelineOrchestrator`](/knowledge/concepts/pipeline.md) and
-persists results to `pipeline_runs` in the [database](/knowledge/concepts/database.md).
+`POST /api/run` accepts `PreviewRequest { pipeline_id?: str }` and triggers a live
+pipeline run via `runner.execute(mode="run", pipeline_id=...)`. Returns 201 with
+`RunSummaryResponse` on success, 409 if another run is already active (checked via
+`run_active` config flag), or 503 if not authenticated.
+
+The run executes the **same** logic as the [scheduler](/knowledge/concepts/scheduler.md),
+which constructs a [`Runner`](/knowledge/concepts/pipeline.md) and persists results to
+`pipeline_runs` in the [database](/knowledge/concepts/database.md).
+
+Run history is available via `GET /api/runs` (with optional `?limit=` parameter) and
+individual run details via `GET /api/runs/{id}`. Decisions (inserted/skipped per video)
+are available via `GET /api/runs/{id}/decisions` (with optional `?limit=` parameter).
 
 # Models
 
