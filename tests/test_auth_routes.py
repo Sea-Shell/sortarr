@@ -95,6 +95,27 @@ async def test_login_returns_503_without_oauth_manager():
     assert "OAuth not configured" in data["detail"]
 
 
+@pytest.mark.asyncio
+async def test_login_returns_503_when_client_secret_missing(
+    app_with_oauth, mock_oauth_manager
+):
+    """GET /auth/login should return 503 if client_secret.json does not exist."""
+    mock_oauth_manager.get_authorization_url.side_effect = FileNotFoundError(
+        "OAuth client secret not found at client_secret.json. "
+        "Download client_secret.json from Google Cloud Console "
+        "(APIs & Services > Credentials) and place it at this path."
+    )
+
+    transport = ASGITransport(app=app_with_oauth)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.get("/api/auth/login")
+
+    assert resp.status_code == 503
+    data = resp.json()
+    assert "OAuth client secret not found" in data["detail"]
+    assert "Google Cloud Console" in data["detail"]
+
+
 # Callback endpoint tests
 
 
@@ -138,6 +159,27 @@ async def test_callback_returns_500_on_oauth_error(app_with_oauth, mock_oauth_ma
     assert resp.status_code == 500
     data = resp.json()
     assert "authentication failed" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_callback_returns_503_when_client_secret_missing(
+    app_with_oauth, mock_oauth_manager
+):
+    """GET /auth/callback should return 503 if client_secret.json does not exist."""
+    mock_oauth_manager.handle_callback.side_effect = FileNotFoundError(
+        "OAuth client secret not found at client_secret.json. "
+        "Download client_secret.json from Google Cloud Console "
+        "(APIs & Services > Credentials) and place it at this path."
+    )
+
+    transport = ASGITransport(app=app_with_oauth)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.get("/api/auth/callback?code=test_code")
+
+    assert resp.status_code == 503
+    data = resp.json()
+    assert "OAuth client secret not found" in data["detail"]
+    assert "Google Cloud Console" in data["detail"]
 
 
 # Status endpoint tests

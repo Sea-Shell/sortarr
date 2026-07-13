@@ -8,6 +8,7 @@ Provides AuthorizedSession for API calls with auto-refresh.
 import json
 import logging
 import threading
+from pathlib import Path
 
 from google.auth.transport.requests import AuthorizedSession, Request
 from google.oauth2.credentials import Credentials
@@ -38,7 +39,16 @@ class OAuthManager:
         """Generate OAuth 2.0 authorization URL.
 
         User should be redirected to this URL to grant consent.
+
+        Raises:
+            FileNotFoundError: If client_secret.json does not exist
         """
+        if not Path(self.client_secret_path).exists():
+            raise FileNotFoundError(
+                f"OAuth client secret not found at {self.client_secret_path}. "
+                f"Download client_secret.json from Google Cloud Console "
+                f"(APIs & Services > Credentials) and place it at this path."
+            )
         flow = Flow.from_client_secrets_file(
             self.client_secret_path, scopes=SCOPES, redirect_uri=self.redirect_uri
         )
@@ -51,7 +61,16 @@ class OAuthManager:
         """Exchange authorization code for tokens and save to DB.
 
         code: Authorization code from OAuth callback query parameter
+
+        Raises:
+            FileNotFoundError: If client_secret.json does not exist
         """
+        if not Path(self.client_secret_path).exists():
+            raise FileNotFoundError(
+                f"OAuth client secret not found at {self.client_secret_path}. "
+                f"Download client_secret.json from Google Cloud Console "
+                f"(APIs & Services > Credentials) and place it at this path."
+            )
         flow = Flow.from_client_secrets_file(
             self.client_secret_path, scopes=SCOPES, redirect_uri=self.redirect_uri
         )

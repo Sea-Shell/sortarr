@@ -47,11 +47,19 @@ async def login(request: Request):
     """Redirect to Google OAuth consent screen.
 
     Returns 302 redirect to Google authorization URL.
+    Raises 503 if client_secret.json is missing.
     """
     oauth = _get_oauth_manager(request)
-    auth_url = oauth.get_authorization_url()
-    log.info("redirecting to OAuth consent screen")
-    return RedirectResponse(url=auth_url, status_code=302)
+    try:
+        auth_url = oauth.get_authorization_url()
+        log.info("redirecting to OAuth consent screen")
+        return RedirectResponse(url=auth_url, status_code=302)
+    except FileNotFoundError as e:
+        log.error("OAuth client secret file missing: %s", e)
+        raise HTTPException(
+            status_code=503,
+            detail=str(e),
+        ) from e
 
 
 @router.get("/callback")
@@ -63,6 +71,7 @@ async def callback(
 
     Saves credentials to database.
     Returns success message.
+    Raises 503 if client_secret.json is missing.
     """
     oauth = _get_oauth_manager(request)
 
@@ -73,6 +82,12 @@ async def callback(
         oauth.handle_callback(code)
         log.info("OAuth callback successful — credentials saved")
         return {"message": "authentication successful", "authenticated": True}
+    except FileNotFoundError as e:
+        log.error("OAuth client secret file missing: %s", e)
+        raise HTTPException(
+            status_code=503,
+            detail=str(e),
+        ) from e
     except Exception as e:
         log.error("OAuth callback failed: %s", e)
         raise HTTPException(
