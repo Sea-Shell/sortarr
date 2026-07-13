@@ -4,13 +4,15 @@ title: Sortarr Knowledge Bundle — Change Log
 description: Chronological record of changes to the knowledge/ OKF bundle. Append one line per change; newest at top.
 resource: https://github.com/Sea-Shell/sortarr
 tags: [sortarr, log, okf, changelog]
-timestamp: 2026-07-13T00:00:00Z
+timestamp: 2026-07-13T08:20:00Z
 ---
 
 # Change Log
 
 Append a one-line entry whenever you add, edit, or remove a concept doc.
 Format: `- YYYY-MM-DD — <doc(s) touched> — <what changed and why>`
+
+- 2026-07-13 — api.md — documented FastAPI lifespan context manager (startup: init DB, reset quota, migrate pickle, create OAuth/YouTube/Runner, start scheduler; shutdown: stop scheduler, close DB), AppState container, and dependency injection functions (get_state, get_oauth_manager, require_youtube, get_runner).
 
 - 2026-07-13 — scheduler.md — added Implementation section documenting PipelineScheduler class (init, start, stop, update_schedule, get_next_run_time), misfire grace time (3600s), and FastAPI lifespan integration.
 

@@ -4,18 +4,35 @@ title: Sortarr HTTP API
 description: FastAPI app factory, shared AppState, dependency providers, and the REST routes for config, auth, pipelines, subscriptions, and metrics.
 resource: https://github.com/Sea-Shell/sortarr/tree/main/src/sortarr/api
 tags: [sortarr, api, fastapi, rest]
-timestamp: 2026-07-12T22:30:00Z
+timestamp: 2026-07-13T09:00:00Z
 ---
 
 # App factory
 
-`src/sortarr/api/app.py` exposes `create_app()` which builds the FastAPI app and
-a `lifespan()` context. Shared state lives in `AppState` (settings, DB
-`Connection`, `YouTubeAPIClient`, scheduler) and is reached in handlers via
-`deps.py`:
+`src/sortarr/api/app.py` exposes `create_app()` which builds the FastAPI app with
+a `lifespan()` async context manager. The lifespan:
 
-- `get_state()` — returns the `AppState`
-- `require_youtube()` — dependency that 401/409s if not authenticated
+**Startup:**
+1. Initializes database connection and applies schema
+2. Resets quota counter to 0
+3. Migrates OAuth credentials from pickle file if needed
+4. Creates OAuth manager and YouTube client (if authenticated)
+5. Creates Runner (if YouTube client available)
+6. Starts scheduler with cron-based callback
+
+**Shutdown:**
+1. Stops scheduler
+2. Closes database connection
+
+Shared state lives in `AppState` (settings, OAuth manager, YouTube client, Runner,
+scheduler) and is reached in handlers via `deps.py`:
+
+- `get_state(request)` — returns the `AppState`
+- `get_oauth_manager(state)` — returns OAuth manager (500 if not initialized)
+- `require_youtube(state)` — dependency that 401s if not authenticated
+- `get_runner(state)` — returns Runner (503 if not initialized)
+
+CORS middleware allows all origins for local dev.
 
 Served by `uvicorn` on `SORTARR_API_PORT` (default 8080). Web UI at `/ui`.
 
