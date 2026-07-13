@@ -4,7 +4,7 @@ title: Sortarr Development Workflow
 description: How to install, run, test, lint, type-check, containerize, and deploy sortarr — the commands you reach for every session.
 resource: https://github.com/Sea-Shell/sortarr/blob/main/README.md
 tags: [sortarr, dev, build, test, docker, k8s]
-timestamp: 2026-06-24T10:00:00Z
+timestamp: 2026-07-13T15:00:00Z
 ---
 
 # Stack
@@ -21,6 +21,23 @@ timestamp: 2026-06-24T10:00:00Z
 uv sync --dev
 uv run python -m sortarr      # serves http://localhost:8080
 ```
+
+Entry point: `src/sortarr/__main__.py` (registered as `sortarr` script in `pyproject.toml`).
+
+Command-line options:
+- `--host HOST` — bind address (default: 0.0.0.0)
+- `--port PORT` — bind port (default: from SORTARR_API_PORT or 8080)
+- `--log-level LEVEL` — log level (default: from SORTARR_LOG_LEVEL or warning)
+
+The entry point:
+1. Parses command-line arguments
+2. Loads settings from environment variables (via pydantic-settings)
+3. Sets up structured logging
+4. Registers SIGTERM/SIGINT handlers for graceful shutdown
+5. Creates the FastAPI app via `create_app()`
+6. Starts uvicorn server
+
+All runtime configuration is via environment variables (see [runtime-config](/knowledge/concepts/runtime-config.md)).
 
 # Make targets
 

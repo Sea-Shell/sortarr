@@ -29,6 +29,12 @@ from typing import TYPE_CHECKING
 from sortarr.core.enricher import Enricher
 from sortarr.core.filters import FilterChain
 from sortarr.db.repository import activities, config, pipelines, runs, subscriptions, videos
+from sortarr.metrics import (
+    sortarr_quota_used_today,
+    sortarr_run_duration_seconds,
+    sortarr_runs_total,
+    sortarr_videos_inserted_total,
+)
 from sortarr.models.pipeline import RunSummary
 from sortarr.models.youtube import Activity, Subscription, Video
 
@@ -75,6 +81,10 @@ class Runner:
         """
         if mode != "run":
             raise ValueError(f"invalid mode: {mode} (only 'run' supported in T4.1)")
+
+        # Record run start time for duration metric
+        import time
+        start_time = time.time()
 
         # Step 0: Startup cleanup (crash recovery)
         self._startup_cleanup()
@@ -254,6 +264,13 @@ class Runner:
                 conn = get_connection()
                 conn.execute("DELETE FROM app_config WHERE key = 'run_active'")
                 conn.commit()
+                
+                # Record metrics for quota-blocked run
+                duration = time.time() - start_time
+                sortarr_runs_total.labels(trigger=run_summary.trigger).inc()
+                sortarr_quota_used_today.set(quota_used)
+                sortarr_run_duration_seconds.observe(duration)
+                
                 return run_id
 
             # Step 11: Run duration filters and insert
@@ -323,6 +340,7 @@ class Runner:
                 )
 
             # Step 13: Record run summary
+            final_quota = get_quota_used()
             runs.update_run(
                 run_id,
                 {
@@ -332,7 +350,7 @@ class Runner:
                     "videos_collected": run_summary.activities_collected,
                     "videos_after_cheap_filters": len(unique_video_ids),
                     "videos_inserted": run_summary.videos_inserted,
-                    "quota_used": get_quota_used(),
+                    "quota_used": final_quota,
                 },
             )
             runs.add_decisions(run_id, decisions)
@@ -344,6 +362,13 @@ class Runner:
 
             # Step 15: Prune activity cache
             activities.prune_old_entries(retention_days=30)
+
+            # Record Prometheus metrics
+            duration = time.time() - start_time
+            sortarr_runs_total.labels(trigger=run_summary.trigger).inc()
+            sortarr_videos_inserted_total.inc(run_summary.videos_inserted)
+            sortarr_quota_used_today.set(final_quota)
+            sortarr_run_duration_seconds.observe(duration)
 
             log.info(
                 "run %d completed: %d inserted, %d skipped",

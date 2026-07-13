@@ -155,6 +155,7 @@ def create_app() -> FastAPI:
         auth,
         config,
         health,
+        metrics,
         pipeline,
         pipelines,
         preview,
@@ -170,5 +171,6 @@ def create_app() -> FastAPI:
     app.include_router(preview.router, prefix="/api")
     app.include_router(subscriptions.router, prefix="/api")
     app.include_router(stats.router, prefix="/api")
+    app.include_router(metrics.router)  # no /api prefix for Prometheus convention
 
     return app

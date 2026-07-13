@@ -4,7 +4,7 @@ title: Sortarr HTTP API
 description: FastAPI app factory, shared AppState, dependency providers, and the REST routes for config, auth, pipelines, subscriptions, and metrics.
 resource: https://github.com/Sea-Shell/sortarr/tree/main/src/sortarr/api
 tags: [sortarr, api, fastapi, rest]
-timestamp: 2026-07-13T14:30:00Z
+timestamp: 2026-07-13T15:00:00Z
 ---
 
 # App factory
@@ -50,7 +50,7 @@ Route modules in `src/sortarr/api/routes/`:
 | `preview.py`          | `POST /api/preview/mock` (mock preview with synthetic activities, zero quota cost), `POST /api/preview/cache` (cache preview using activity_cache, zero quota cost) — both accept `PreviewRequest { pipeline_id?: str }` |
 | `subscriptions.py`    | `GET /api/subscriptions` (list subscriptions from DB), `GET /api/subscriptions/stats` (per-subscription activity counts and last_fetched_at), `GET /api/playlists` (fetch user's YouTube playlists, requires auth, 1 quota unit) |
 | `stats.py`            | `GET /api/stats` (dashboard statistics: pipeline counts, subscription counts, activity cache size, run counts by status) |
-| (root)                | `GET /metrics` — Prometheus                                                                                      |
+| `metrics.py`          | `GET /metrics` — Prometheus metrics in text format (counters, gauges, histograms for runs, quota, videos, duration) |
 
 # Triggering a run
 
@@ -142,3 +142,35 @@ to verify:
 - Quota counter increments correctly
 - Pagination support (page_token)
 - All methods return expected structure
+
+# Prometheus Metrics
+
+`src/sortarr/metrics.py` exposes Prometheus metrics at `GET /metrics` in standard text format.
+
+## Available Metrics
+
+| Metric Name | Type | Labels | Description |
+|-------------|------|--------|-------------|
+| `sortarr_runs_total` | Counter | `trigger` (manual/scheduled) | Total number of pipeline runs |
+| `sortarr_quota_used_today` | Gauge | - | YouTube API quota units used today |
+| `sortarr_videos_inserted_total` | Counter | - | Total number of videos inserted into playlists |
+| `sortarr_run_duration_seconds` | Histogram | - | Duration of pipeline runs in seconds |
+
+## Recording
+
+Metrics are recorded by `src/sortarr/core/runner.py` at the end of each pipeline run:
+- `sortarr_runs_total` increments on every run (labeled by trigger type)
+- `sortarr_videos_inserted_total` increments by the number of videos inserted
+- `sortarr_quota_used_today` is set to the current quota usage
+- `sortarr_run_duration_seconds` observes the run duration in seconds
+
+Metrics are recorded for both successful runs and quota-blocked runs. Failed runs do not record metrics (except the run counter).
+
+## Usage
+
+The metrics endpoint is exposed without the `/api` prefix to follow Prometheus convention:
+```
+GET /metrics
+```
+
+Returns Prometheus text format (Content-Type: `text/plain; version=0.0.4; charset=utf-8`).
