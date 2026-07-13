@@ -104,3 +104,9 @@ uv run mypy src/sortarr/
 ## Kubernetes
 
 Manifests in `k8s/` — deploy with `kubectl apply -f k8s/`.
+
+See [DEPLOY.md](DEPLOY.md) for detailed deployment instructions including:
+- Container build with podman
+- Kubernetes prerequisites and setup
+- Basic auth configuration
+- Troubleshooting guide

@@ -2,6 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: sortarr-config
+  namespace: seashell
 data:
   SORTARR_API_PORT: "8080"
   SORTARR_COMPARE_DISTANCE: "97"

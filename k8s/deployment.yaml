@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: sortarr
+  namespace: seashell
 spec:
   replicas: 1
   selector:
@@ -14,7 +15,7 @@ spec:
     spec:
       containers:
         - name: sortarr
-          image: docker.io/bateau/sortarr:v2.20.14
+          image: docker.io/bateau/sortarr:v2.0.0
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
