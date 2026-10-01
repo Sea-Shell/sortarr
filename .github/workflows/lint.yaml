@@ -5,6 +5,8 @@ on:
       - main
 
 name: Commit lint
+permissions:
+  contents: read
 jobs:
   lint:
     uses: nrkno/github-workflow-semantic-release/.github/workflows/workflow.yaml@6a8585e39eabcb53cdbdebfcc76eb9672199089e # v5.1.5
