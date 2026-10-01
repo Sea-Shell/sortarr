@@ -4,7 +4,7 @@ title: Sortarr Development Workflow
 description: How to install, run, test, lint, type-check, containerize, and deploy sortarr — the commands you reach for every session.
 resource: https://github.com/Sea-Shell/sortarr/blob/main/README.md
 tags: [sortarr, dev, build, test, docker, k8s]
-timestamp: 2026-06-24T10:00:00Z
+timestamp: 2026-10-01T10:00:00Z
 ---
 
 # Stack
@@ -38,6 +38,11 @@ uv run python -m sortarr      # serves http://localhost:8080
 - `ruff` for lint + format; runs on commit via **pre-commit**
   (`uv tool install pre-commit && pre-commit install`).
 - Optional type checking: `uv run mypy src/sortarr/`.
+- Pull requests run the semrel commit linter through
+  `.github/workflows/lint.yaml`. Commit subjects must use one of the
+  Conventional Commit types configured in `.semrelrc.yml`: `build`, `chore`,
+  `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, or
+  `test`.
 
 # Tests
 

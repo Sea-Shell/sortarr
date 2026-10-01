@@ -5,9 +5,11 @@ on:
       - main
 
 name: Commit lint
+permissions:
+  contents: read
 jobs:
   lint:
-    uses: nrkno/github-workflow-semantic-release/.github/workflows/workflow.yaml@b97399abef4d6647db11798db6d81e623b862615 # v4.19.0
+    uses: nrkno/github-workflow-semantic-release/.github/workflows/workflow.yaml@6a8585e39eabcb53cdbdebfcc76eb9672199089e # v5.1.5
     with:
       runs-on: ubuntu-latest
       release-enabled: false

@@ -23,3 +23,5 @@ Format: `- YYYY-MM-DD — <doc(s) touched> — <what changed and why>`
 - 2026-07-11 — api.md — updated subscriptions endpoint to sync-then-serve pattern (YouTube API → DB fallback).
 - 2026-07-12 — pipeline.md — documented restored per-subscription tracking narrowing in _compute_published_after (max() of reprocess_days ceiling and min_tracking_ts).
 - 2026-07-12 — api.md — activity endpoint now falls back to activity_cache when YouTube API is unavailable.
+- 2026-10-01 — no concept docs changed — applied Ruff formatting to pipeline routing files to pass the CI format check.
+- 2026-10-01 — dev-workflow.md — documented semrel commit-lint behavior and the accepted commit types, including `style`.

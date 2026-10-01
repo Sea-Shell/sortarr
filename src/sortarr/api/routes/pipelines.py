@@ -238,7 +238,7 @@ async def remove_ignore_list_entry(list_id: str, entry_id: str, request: Request
 @router.get("/playlists", response_model=List[PlaylistResponse])
 async def list_playlists(request: Request):
     """Return user's YouTube playlists for pipeline config.
-    
+
     Tries YouTube API first; falls back to DB cache on failure.
     Returns an empty list (200) if no playlists are available.
     """
@@ -283,10 +283,12 @@ async def list_playlists(request: Request):
         pid = row["destination_playlist_id"]
         if pid not in seen:
             seen.add(pid)
-            result.append(PlaylistResponse(
-                id=pid,
-                title=row["destination_playlist_title"],
-            ))
+            result.append(
+                PlaylistResponse(
+                    id=pid,
+                    title=row["destination_playlist_title"],
+                )
+            )
 
     return result
 

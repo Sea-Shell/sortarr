@@ -126,9 +126,7 @@ class PipelineOrchestrator:
                 - timedelta(days=self.settings.reprocess_days)
             ).isoformat()
         else:
-            max_window = (
-                datetime.now(timezone.utc) - timedelta(weeks=52)
-            ).isoformat()
+            max_window = (datetime.now(timezone.utc) - timedelta(weeks=52)).isoformat()
 
         # Try to narrow window using per-subscription tracking
         # (earliest last_processed across all pipelines)
